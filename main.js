@@ -4,7 +4,7 @@ import {mat4} from 'gl-matrix'
 
 let mandelbrot_state = {
     center: [0, 0],
-    radius: 1,
+    radius: 2,
     callbacks: [],
     modified: function() {
         for (const cb of this.callbacks){
@@ -31,7 +31,7 @@ function main() {
     console.log(new BigNumber(123.43))
 
     document.querySelector("#reset").addEventListener('click', (event) => {
-        mandelbrot_state.set(0, 0, 1)
+        mandelbrot_state.set(0, 0, 2)
     });
 
     const canvas = document.querySelector('#canvas')
@@ -87,18 +87,22 @@ function main() {
       float cy = uState[2] * y + uState[1];
       x = 0.;
       y = 0.;
-
+      int j;
       for(int i = 0; i < 1000; i++){
+        j += 1;
         float tx = x * x - y * y + cx;
         y = 2. * x * y + cy;
         x = tx;
+        if (x*x + y * y > 4.) {
+            break;
+        }
       }
 
-      bool in_circ = (x * x) + (y * y) < 1.;
+      bool in_circ = (x * x) + (y * y) < 4.;
 
 
       gl_FragColor = vColor * float(in_circ);
-      gl_FragColor[3] = 1.;
+      gl_FragColor[3] = float(j) / 1000.;
     }
   `;
 
@@ -123,10 +127,10 @@ function main() {
   const buffers = initBuffers(gl);
 
   // Draw the scene
-  drawScene(gl, programInfo, buffers);
   mandelbrot_state.callbacks.push( () => {
     drawScene(gl, programInfo, buffers);
   });
+  mandelbrot_state.modified();
 }
 
 //
