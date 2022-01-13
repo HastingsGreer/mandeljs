@@ -1,4 +1,4 @@
-to serve man:
+to serve mandel.js
 
 ```
 yarn
