@@ -1,6 +1,7 @@
 {
   "name": "mandeljs",
   "version": "0.0.0",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,6 +11,7 @@
     "vite": "^2.7.2"
   },
   "dependencies": {
-    "bignumber.js": "^9.0.2"
+    "bignumber.js": "^9.0.2",
+    "gl-matrix": "^3.4.3"
   }
 }
