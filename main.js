@@ -39,8 +39,8 @@ function main() {
     precision lowp float;
 
     void main() {
-      float x = 2. * vColor[0] - 1.;
-      float y = 2. * vColor[1] - 1.;
+      float x = 2. * vColor[1] - 1.;
+      float y = 2. * vColor[0] - 1.;
 
       float cx = x;
       float cy = y;
