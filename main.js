@@ -1,20 +1,52 @@
 import './style.css'
 import BigNumber from 'bignumber.js'
 import {mat4} from 'gl-matrix'
+
+let mandelbrot_state = {
+    center: [0, 0],
+    radius: 1,
+    callbacks: [],
+    modified: function() {
+        for (const cb of this.callbacks){
+            cb()
+        }
+    },
+    set: function(x, y, r) {
+        this.center = [x, y];
+        this.radius = r;
+        this.modified()
+    },
+    update: function(dx, dy) {
+        this.center = [this.center[0] + this.radius * dx, this.center[1] - this.radius * dy]
+        this.radius = this.radius / 2;
+        this.modified()
+    }
+
+    
+}
+
 main()
+
 function main() {
     console.log(new BigNumber(123.43))
+
+    document.querySelector("#reset").addEventListener('click', (event) => {
+        mandelbrot_state.set(0, 0, 1)
+    });
 
     const canvas = document.querySelector('#canvas')
 
     canvas.addEventListener('click', (event) => {
         let x, y
         [x, y] = getCursorPos(canvas, event);
-        x = x / 512
-        y = y / 512
-        console.log(x, y)
+        x = x / 256 - 1;
+        y = y / 256 - 1;
+        mandelbrot_state.update(x, y)
     });
+    mandelbrot_state.callbacks.push(()=>{
 
+        document.querySelector("#clickpos").innerText = mandelbrot_state.center
+    });
     const gl = canvas.getContext('webgl')
 
     if (!gl) {
@@ -32,7 +64,7 @@ function main() {
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
-	varying lowp vec4 vColor;
+	varying highp vec4 vColor;
 	
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
@@ -42,16 +74,17 @@ function main() {
 
   // Fragment shader program
   const fsSource = `
-		varying lowp vec4 vColor;
+    varying highp vec4 vColor;
 	
-    precision lowp float;
+    precision highp float;
 
+    uniform vec4 uState;
     void main() {
       float x = 2. * vColor[1] - 1.;
       float y = 2. * vColor[0] - 1.;
 
-      float cx = x;
-      float cy = y;
+      float cx = uState[2] * x + uState[0];
+      float cy = uState[2] * y + uState[1];
       x = 0.;
       y = 0.;
 
@@ -83,6 +116,7 @@ function main() {
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
       modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+      state: gl.getUniformLocation(shaderProgram, "uState")
     },
   };
 
@@ -90,6 +124,9 @@ function main() {
 
   // Draw the scene
   drawScene(gl, programInfo, buffers);
+  mandelbrot_state.callbacks.push( () => {
+    drawScene(gl, programInfo, buffers);
+  });
 }
 
 //
@@ -238,6 +275,9 @@ function drawScene(gl, programInfo, buffers) {
       programInfo.uniformLocations.modelViewMatrix,
       false,
       modelViewMatrix);
+  gl.uniform4f(
+      programInfo.uniformLocations.state,
+      mandelbrot_state.center[0], mandelbrot_state.center[1], mandelbrot_state.radius, 0);
 
   {
     const offset = 0;
