@@ -39,12 +39,25 @@ function main() {
     precision lowp float;
 
     void main() {
-      float x = vColor[0];
-      float y = vColor[1];
+      float x = 2. * vColor[0] - 1.;
+      float y = 2. * vColor[1] - 1.;
 
-      bool in_circ = (2.0*x - 1.0) * (2.0 *x - 1.0) + (2.0 * y - 1.0) * (2.0 * y - 1.0) < 1.0;
+      float cx = x;
+      float cy = y;
+      x = 0.;
+      y = 0.;
+
+      for(int i = 0; i < 1000; i++){
+        float tx = x * x - y * y + cx;
+        y = 2. * x * y + cy;
+        x = tx;
+      }
+
+      bool in_circ = (x * x) + (y * y) < 1.;
+
 
       gl_FragColor = vColor * float(in_circ);
+      gl_FragColor[3] = 1.;
     }
   `;
 
