@@ -36,8 +36,15 @@ function main() {
   const fsSource = `
 		varying lowp vec4 vColor;
 	
+    precision lowp float;
+
     void main() {
-      gl_FragColor = vColor;
+      float x = vColor[0];
+      float y = vColor[1];
+
+      bool in_circ = (2.0*x - 1.0) * (2.0 *x - 1.0) + (2.0 * y - 1.0) * (2.0 * y - 1.0) < 1.0;
+
+      gl_FragColor = vColor * float(in_circ);
     }
   `;
 
@@ -160,7 +167,7 @@ function drawScene(gl, programInfo, buffers) {
 
   mat4.translate(modelViewMatrix,     // destination matrix
                  modelViewMatrix,     // matrix to translate
-                 [-0.0, 0.0, -6.0]);  // amount to translate
+                 [-0.0, 0.0, -2.5]);  // amount to translate
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
