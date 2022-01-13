@@ -14,7 +14,7 @@ jobs:
     - name: Build
       run: | 
         yarn
-        npx vite build
+        npx vite build --base=/mandeljs/
 
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@releases/v3
