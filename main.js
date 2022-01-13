@@ -7,6 +7,14 @@ function main() {
 
     const canvas = document.querySelector('#canvas')
 
+    canvas.addEventListener('click', (event) => {
+        let x, y
+        [x, y] = getCursorPos(canvas, event);
+        x = x / 512
+        y = y / 512
+        console.log(x, y)
+    });
+
     const gl = canvas.getContext('webgl')
 
     if (!gl) {
@@ -271,3 +279,7 @@ function loadShader(gl, type, source) {
   return shader;
 }
 
+function getCursorPos(canvas, event){
+    const rect = canvas.getBoundingClientRect();
+    return [event.clientX - rect.left, event.clientY - rect.top];
+}
