@@ -47,7 +47,7 @@ function main() {
 
         document.querySelector("#clickpos").innerText = mandelbrot_state.center
     });
-    const gl = canvas.getContext('webgl')
+    const gl = canvas.getContext('webgl2')
 
     if (!gl) {
         alert('Unable to initialize WebGL. Your browser or machine may not support it.');
@@ -57,14 +57,14 @@ function main() {
 
 // Vertex shader program
 
-  const vsSource = `
-    attribute vec4 aVertexPosition;
-	attribute vec4 aVertexColor;
+  const vsSource = `#version 300 es
+    in vec4 aVertexPosition;
+	in vec4 aVertexColor;
 	
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
-	varying highp vec4 vColor;
+	out highp vec4 vColor;
 	
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
@@ -73,10 +73,12 @@ function main() {
   `;
 
   // Fragment shader program
-  const fsSource = `
-    varying highp vec4 vColor;
-	
+  const fsSource = `#version 300 es
     precision highp float;
+    in highp vec4 vColor;
+
+    out vec4 fragColor;
+	
 
     uniform vec4 uState;
     void main() {
@@ -98,11 +100,8 @@ function main() {
         }
       }
 
-      bool in_circ = (x * x) + (y * y) < 4.;
-
-
-      gl_FragColor = vColor * float(in_circ);
-      gl_FragColor[3] = float(j) / 1000.;
+      float c =  float(j % 100) / 100.;
+      fragColor = vec4(c, c, c, 1);
     }
   `;
 
