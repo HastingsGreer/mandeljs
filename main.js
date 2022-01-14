@@ -1,7 +1,6 @@
 import './style.css'
 import BigNumber from 'bignumber.js'
-import {mat4} from 'gl-matrix'
-
+import {getCursorPos, getTouchPos, initShaderProgram, loadShader, createMatrices, loadTexture} from './glutils.js'
 let mandelbrot_state = {
     center: [0, 0],
     radius: 2,
@@ -21,14 +20,11 @@ let mandelbrot_state = {
         this.radius = this.radius / 2;
         this.modified()
     }
-
-    
 }
 
 main()
 
 function main() {
-    console.log(new BigNumber(123.43))
 
     document.querySelector("#reset").addEventListener('click', (event) => {
         mandelbrot_state.set(0, 0, 2)
@@ -39,6 +35,13 @@ function main() {
     canvas.addEventListener('click', (event) => {
         let x, y
         [x, y] = getCursorPos(canvas, event);
+        x = x / 256 - 1;
+        y = y / 256 - 1;
+        mandelbrot_state.update(x, y)
+    });
+    canvas.addEventListener("touchstart", (event) => {
+        let x, y
+        [x, y] = getTouchPos(canvas, event);
         x = x / 256 - 1;
         y = y / 256 - 1;
         mandelbrot_state.update(x, y)
@@ -55,42 +58,41 @@ function main() {
     }
 
 
-// Vertex shader program
+  // Vertex shader program
 
   const vsSource = `#version 300 es
     in vec4 aVertexPosition;
-	in vec4 aVertexColor;
 	
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
-	out highp vec4 vColor;
+	out highp vec2 delta;
 	
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-	  vColor = aVertexColor;
+	  delta = vec2(aVertexPosition[0], aVertexPosition[1]);
     }
   `;
 
   // Fragment shader program
   const fsSource = `#version 300 es
     precision highp float;
-    in highp vec4 vColor;
+    in highp vec2 delta;
 
     out vec4 fragColor;
 	
 
     uniform vec4 uState;
     void main() {
-      float x = 2. * vColor[1] - 1.;
-      float y = 2. * vColor[0] - 1.;
+      float x = delta[0];
+      float y = delta[1];
 
       float cx = uState[2] * x + uState[0];
       float cy = uState[2] * y + uState[1];
       x = 0.;
       y = 0.;
       int j;
-      for(int i = 0; i < 1000; i++){
+      for(int i = 0; i < 5000; i++){
         j += 1;
         float tx = x * x - y * y + cx;
         y = 2. * x * y + cy;
@@ -114,7 +116,6 @@ function main() {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-			vertexColor: gl.getAttribLocation(shaderProgram, "aVertexColor")
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -132,15 +133,8 @@ function main() {
   mandelbrot_state.modified();
 }
 
-//
-// initBuffers
-//
-// Initialize the buffers we'll need. For this demo, we just
-// have one object -- a simple two-dimensional square.
-//
 function initBuffers(gl) {
 
-  // Create a buffer for the square's positions.
 
   const positionBuffer = gl.createBuffer();
 
@@ -165,20 +159,9 @@ function initBuffers(gl) {
   gl.bufferData(gl.ARRAY_BUFFER,
                 new Float32Array(positions),
                 gl.STATIC_DRAW);
-  const colors = [
-    1.0,  1.0,  1.0,  1.0,    // white
-    1.0,  0.0,  0.0,  1.0,    // red
-    0.0,  1.0,  0.0,  1.0,    // green
-    0.0,  0.0,  1.0,  1.0,    // blue
-  ];
-
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
   return {
     position: positionBuffer,
-    color: colorBuffer,
   };
 }
 //
@@ -193,39 +176,8 @@ function drawScene(gl, programInfo, buffers) {
   // Clear the canvas before we start drawing on it.
 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-  // Create a perspective matrix, a special matrix that is
-  // used to simulate the distortion of perspective in a camera.
-  // Our field of view is 45 degrees, with a width/height
-  // ratio that matches the display size of the canvas
-  // and we only want to see objects between 0.1 units
-  // and 100 units away from the camera.
-
-  const fieldOfView = 45 * Math.PI / 180;   // in radians
-  const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-  const zNear = 0.1;
-  const zFar = 100.0;
-  const projectionMatrix = mat4.create();
-
-  // note: glmatrix.js always has the first argument
-  // as the destination to receive the result.
-  mat4.perspective(projectionMatrix,
-                   fieldOfView,
-                   aspect,
-                   zNear,
-                   zFar);
-
-  // Set the drawing position to the "identity" point, which is
-  // the center of the scene.
-  const modelViewMatrix = mat4.create();
-
-  // Now move the drawing position a bit to where we want to
-  // start drawing the square.
-
-  mat4.translate(modelViewMatrix,     // destination matrix
-                 modelViewMatrix,     // matrix to translate
-                 [-0.0, 0.0, -2.5]);  // amount to translate
-
+  let projectionMatrix, modelViewMatrix;
+  [projectionMatrix, modelViewMatrix] = createMatrices(gl)
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
   {
@@ -246,25 +198,6 @@ function drawScene(gl, programInfo, buffers) {
         programInfo.attribLocations.vertexPosition);
   }
   
-  // Tell WebGL how to pull out the colors from the color buffer
-  // into the vertexColor attribute.
-  {
-    const numComponents = 4;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexColor,
-        numComponents,
-        type,
-        normalize,
-        stride,
-        offset);
-    gl.enableVertexAttribArray(
-        programInfo.attribLocations.vertexColor);
-  }
 	
   gl.useProgram(programInfo.program);
 
@@ -289,40 +222,4 @@ function drawScene(gl, programInfo, buffers) {
   }
 }
 
-function initShaderProgram(gl, vsSource, fsSource) {
-  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
 
-  const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-    return null;
-  }
-
-  return shaderProgram;
-}
-
-function loadShader(gl, type, source) {
-  const shader = gl.createShader(type);
-
-  gl.shaderSource(shader, source);
-
-  gl.compileShader(shader);
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-    return null;
-  }
-
-  return shader;
-}
-
-function getCursorPos(canvas, event){
-    const rect = canvas.getBoundingClientRect();
-    return [event.clientX - rect.left, event.clientY - rect.top];
-}
