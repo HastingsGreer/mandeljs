@@ -26,7 +26,6 @@ let mandelbrot_state = {
 main()
 
 function main() {
-    console.log(new BigNumber(123.43))
 
     document.querySelector("#reset").addEventListener('click', (event) => {
         mandelbrot_state.set(0, 0, 2)
@@ -57,31 +56,30 @@ function main() {
 
   const vsSource = `#version 300 es
     in vec4 aVertexPosition;
-	in vec4 aVertexColor;
 	
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
-	out highp vec4 vColor;
+	out highp vec2 delta;
 	
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-	  vColor = aVertexColor;
+	  delta = vec2(aVertexPosition[0], aVertexPosition[1]);
     }
   `;
 
   // Fragment shader program
   const fsSource = `#version 300 es
     precision highp float;
-    in highp vec4 vColor;
+    in highp vec2 delta;
 
     out vec4 fragColor;
 	
 
     uniform vec4 uState;
     void main() {
-      float x = 2. * vColor[1] - 1.;
-      float y = 2. * vColor[0] - 1.;
+      float x = delta[0];
+      float y = delta[1];
 
       float cx = uState[2] * x + uState[0];
       float cy = uState[2] * y + uState[1];
@@ -112,7 +110,6 @@ function main() {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-			vertexColor: gl.getAttribLocation(shaderProgram, "aVertexColor")
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -130,15 +127,8 @@ function main() {
   mandelbrot_state.modified();
 }
 
-//
-// initBuffers
-//
-// Initialize the buffers we'll need. For this demo, we just
-// have one object -- a simple two-dimensional square.
-//
 function initBuffers(gl) {
 
-  // Create a buffer for the square's positions.
 
   const positionBuffer = gl.createBuffer();
 
@@ -163,20 +153,9 @@ function initBuffers(gl) {
   gl.bufferData(gl.ARRAY_BUFFER,
                 new Float32Array(positions),
                 gl.STATIC_DRAW);
-  const colors = [
-    1.0,  1.0,  1.0,  1.0,    // white
-    1.0,  0.0,  0.0,  1.0,    // red
-    0.0,  1.0,  0.0,  1.0,    // green
-    0.0,  0.0,  1.0,  1.0,    // blue
-  ];
-
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
   return {
     position: positionBuffer,
-    color: colorBuffer,
   };
 }
 //
@@ -244,25 +223,6 @@ function drawScene(gl, programInfo, buffers) {
         programInfo.attribLocations.vertexPosition);
   }
   
-  // Tell WebGL how to pull out the colors from the color buffer
-  // into the vertexColor attribute.
-  {
-    const numComponents = 4;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexColor,
-        numComponents,
-        type,
-        normalize,
-        stride,
-        offset);
-    gl.enableVertexAttribArray(
-        programInfo.attribLocations.vertexColor);
-  }
 	
   gl.useProgram(programInfo.program);
 
