@@ -1,6 +1,6 @@
 import './style.css'
 import BigNumber from 'bignumber.js'
-import {getCursorPos, initShaderProgram, loadShader, createMatrices} from './glutils.js'
+import {getCursorPos, getTouchPos, initShaderProgram, loadShader, createMatrices, loadTexture} from './glutils.js'
 let mandelbrot_state = {
     center: [0, 0],
     radius: 2,
@@ -35,6 +35,13 @@ function main() {
     canvas.addEventListener('click', (event) => {
         let x, y
         [x, y] = getCursorPos(canvas, event);
+        x = x / 256 - 1;
+        y = y / 256 - 1;
+        mandelbrot_state.update(x, y)
+    });
+    canvas.addEventListener("touchstart", (event) => {
+        let x, y
+        [x, y] = getTouchPos(canvas, event);
         x = x / 256 - 1;
         y = y / 256 - 1;
         mandelbrot_state.update(x, y)
