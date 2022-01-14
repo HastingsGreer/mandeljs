@@ -35,15 +35,15 @@ function main() {
     canvas.addEventListener('click', (event) => {
         let x, y
         [x, y] = getCursorPos(canvas, event);
-        x = x / 256 - 1;
-        y = y / 256 - 1;
+        x = x / 350 - 1;
+        y = y / 350 - 1;
         mandelbrot_state.update(x, y)
     });
     canvas.addEventListener("touchstart", (event) => {
         let x, y
         [x, y] = getTouchPos(canvas, event);
-        x = x / 256 - 1;
-        y = y / 256 - 1;
+        x = x / 350 - 1;
+        y = y / 350 - 1;
         mandelbrot_state.update(x, y)
     });
     mandelbrot_state.callbacks.push(()=>{
@@ -92,7 +92,7 @@ function main() {
       x = 0.;
       y = 0.;
       int j;
-      for(int i = 0; i < 5000; i++){
+      for(int i = 0; i < 10000; i++){
         j += 1;
         float tx = x * x - y * y + cx;
         y = 2. * x * y + cy;
@@ -102,8 +102,8 @@ function main() {
         }
       }
 
-      float c =  float(j % 100) / 100.;
-      fragColor = vec4(c, c, c, 1);
+      float c = float(10000 - j) / 20.1;
+      fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
     }
   `;
 
