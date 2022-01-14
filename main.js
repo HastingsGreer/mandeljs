@@ -21,8 +21,6 @@ let mandelbrot_state = {
         this.radius = this.radius / 2;
         this.modified()
     }
-
-    
 }
 
 main()
@@ -90,7 +88,7 @@ function main() {
       x = 0.;
       y = 0.;
       int j;
-      for(int i = 0; i < 1000; i++){
+      for(int i = 0; i < 5000; i++){
         j += 1;
         float tx = x * x - y * y + cx;
         y = 2. * x * y + cy;
