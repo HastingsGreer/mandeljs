@@ -11,7 +11,7 @@ import {
 let mandelbrot_state = {
   center: [0, 0],
   radius: 2,
-  iterations: 10000,
+  iterations: 1000,
   cmapscale: 20.1,
   callbacks: [],
   modified: function () {
@@ -35,7 +35,7 @@ function main() {
   document.querySelector("#reset").addEventListener("click", (event) => {
     document.querySelector("#iterations").value = "10000";
     document.querySelector("#cmapscale").value = "20.1";
-    mandelbrot_state.iterations = 10000;
+    mandelbrot_state.iterations = 1000;
     mandelbrot_state.cmapscale = 20.1;
     mandelbrot_state.set(0, 0, 2);
   });
