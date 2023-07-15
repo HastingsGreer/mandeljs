@@ -83,25 +83,52 @@ function main() {
 	
 
     uniform vec4 uState;
+    uniform sampler2D sequence;
+    float get_orbit_x(int i) {
+    i = i * 2;
+    int row = i / 100;
+    return texelFetch(sequence, ivec2( i % 100, row), 0)[0];
+    }
+    float get_orbit_y(int i) {
+    i = i * 2 + 1;
+    int row = i / 100;
+    return texelFetch(sequence, ivec2( i % 100, row), 0)[0];
+    }
     void main() {
-      float x = delta[0];
-      float y = delta[1];
+     float dcx = uState[2] * delta[0];
+     float dcy = uState[2] * delta[1];
+     float x;
+     float y;
 
-      float cx = uState[2] * x + uState[0];
-      float cy = uState[2] * y + uState[1];
-      x = 0.;
-      y = 0.;
-      int j;
-      for(int i = 0; i < 10000; i++){
-        j += 1;
-        float tx = x * x - y * y + cx;
-        y = 2. * x * y + cy;
-        x = tx;
-        if (x*x + y * y > 4.) {
-            break;
-        }
-      }
+     float dx = 0;
+     float dy = 0;
+     int j = 0;
+     int k = 0;
+     x = get_orbit_x(0);
+     y = get_orbit_y(0);
+     for (int i = 0; i < 10000, i))){
+     	j += 1;
+	k += 1;
+	float tx = 2. * x * dx - 2. * y * dy + dx * dx = dy * dy + dcx;
+	dy = 2. * x * dy + 2. * y * dx + 2 * dx * dy + dcy;
+	dx = tx;
 
+	x = get_orbit_x(k);
+	y = get_orbit_y(k);
+
+	float fx = x + dx;
+	float fy = y + dy;
+
+	if (fx * fx + fy * fy > 4.){
+	break;
+	}
+	if (fx * fx + fy * fy < dx * dx + dy * dy || (x == -1 && y == -1) {
+	dx  = fx;
+	dy = fy;
+	k = 0;
+	x = get_orbit_x(0);
+	y = get_orbit_y(0);
+	}
       float c = float(10000 - j) / 20.1;
       fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
     }
@@ -125,6 +152,11 @@ function main() {
   };
 
   const buffers = initBuffers(gl);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
   // Draw the scene
   mandelbrot_state.callbacks.push( () => {
@@ -164,10 +196,37 @@ function initBuffers(gl) {
     position: positionBuffer,
   };
 }
+function make_reference_orbit(){
+	var cx = mandelbrot_state.center[0];
+	var cy = mandelbrot_state.center[1];
+	var x = 0;
+	var y = 0;
+	var j = 0;
+	var orbit = new Float32Array(20000);
+	for(var i = 0; i < 20000; i++){
+		orbit[i] = -1;
+	}
+	for(var i = 0; i < 10000; i ++){
+		orbit[2 * i] = x;
+		orbit[2 * i + 1] = y;
+		j += 1;
+		var tx = x * x - y * y + cx;
+		y = 2. * x * y + cy;
+		x = tx;
+		if (x * x + y * y > 4.0) {
+			break;
+		}
+	}
+	return reference_orbit;
+}
+
 //
 // Draw the scene.
 //
 function drawScene(gl, programInfo, buffers) {
+  var orbit = make_reference_orbit();
+  var values = new Float32Array(orbit);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 100, 200, 0, gl.RED, gl.FLOAT, values);
   gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
   gl.clearDepth(1.0);                 // Clear everything
   gl.enable(gl.DEPTH_TEST);           // Enable depth testing
