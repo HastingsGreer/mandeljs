@@ -100,17 +100,17 @@ function main() {
      float x;
      float y;
 
-     float dx = 0;
-     float dy = 0;
+     float dx = 0.;
+     float dy = 0.;
      int j = 0;
      int k = 0;
      x = get_orbit_x(0);
      y = get_orbit_y(0);
-     for (int i = 0; i < 10000, i))){
+     for (int i = 0; i < 10000; i++){
      	j += 1;
 	k += 1;
-	float tx = 2. * x * dx - 2. * y * dy + dx * dx = dy * dy + dcx;
-	dy = 2. * x * dy + 2. * y * dx + 2 * dx * dy + dcy;
+	float tx = 2. * x * dx - 2. * y * dy + dx * dx - dy * dy + dcx;
+	dy = 2. * x * dy + 2. * y * dx + 2. * dx * dy + dcy;
 	dx = tx;
 
 	x = get_orbit_x(k);
@@ -122,12 +122,13 @@ function main() {
 	if (fx * fx + fy * fy > 4.){
 	break;
 	}
-	if (fx * fx + fy * fy < dx * dx + dy * dy || (x == -1 && y == -1) {
+	if (fx * fx + fy * fy < dx * dx + dy * dy || (x == -1. && y == -1.)) {
 	dx  = fx;
 	dy = fy;
 	k = 0;
 	x = get_orbit_x(0);
 	y = get_orbit_y(0);
+	}
 	}
       float c = float(10000 - j) / 20.1;
       fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
@@ -217,7 +218,7 @@ function make_reference_orbit(){
 			break;
 		}
 	}
-	return reference_orbit;
+	return orbit;
 }
 
 //
