@@ -11,6 +11,8 @@ import {
 let mandelbrot_state = {
   center: [0, 0],
   radius: 2,
+  iterations: 10000,
+  cmapscale: 20.1,
   callbacks: [],
   modified: function () {
     for (const cb of this.callbacks) {
@@ -31,6 +33,10 @@ let mandelbrot_state = {
 main();
 function main() {
   document.querySelector("#reset").addEventListener("click", (event) => {
+    document.querySelector("#iterations").value = "10000";
+    document.querySelector("#cmapscale").value = "20.1";
+    mandelbrot_state.iterations = 10000;
+    mandelbrot_state.cmapscale = 20.1;
     mandelbrot_state.set(0, 0, 2);
   });
   const canvas = document.querySelector("#canvas");
@@ -48,6 +54,15 @@ function main() {
     y = y / 350 - 1;
     mandelbrot_state.update(x, y);
   });
+  document.querySelector("#iterations").addEventListener("input", (event) => {
+    mandelbrot_state.iterations = parseInt(event.target.value);
+    mandelbrot_state.modified();
+  });
+  document.querySelector("#cmapscale").addEventListener("input", (event) => {
+    mandelbrot_state.cmapscale = parseFloat(event.target.value);
+    mandelbrot_state.modified();
+  });
+
   mandelbrot_state.callbacks.push(() => {
     document.querySelector("#clickpos").innerText = mandelbrot_state.center;
   });
@@ -93,7 +108,7 @@ function main() {
      int k = 0;
      x = get_orbit_x(0);
      y = get_orbit_y(0);
-     for (int i = 0; i < 10000; i++){
+     for (int i = 0; float(i) < uState[3]; i++){
      	j += 1;
 	k += 1;
 	float tx = 2. * x * dx - 2. * y * dy + dx * dx - dy * dy + dcx;
@@ -114,7 +129,7 @@ function main() {
 	y = get_orbit_y(0);
 	}
 	}
-      float c = float(10000 - j) / 20.1;
+      float c = (uState[3] - float(j)) / uState[1];
       fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
     }
   `;
@@ -160,7 +175,7 @@ function make_reference_orbit() {
   for (var i = 0; i < 20000; i++) {
     orbit[i] = -1;
   }
-  for (var i = 0; i < 10000; i++) {
+  for (var i = 0; i < mandelbrot_state.iterations; i++) {
     orbit[2 * i] = x;
     orbit[2 * i + 1] = y;
     j += 1;
@@ -207,9 +222,9 @@ function drawScene(gl, programInfo, buffers) {
   gl.uniform4f(
     programInfo.uniformLocations.state,
     mandelbrot_state.center[0],
-    mandelbrot_state.center[1],
+    mandelbrot_state.cmapscale,
     mandelbrot_state.radius,
-    0,
+    mandelbrot_state.iterations,
   );
   {
     const offset = 0;
