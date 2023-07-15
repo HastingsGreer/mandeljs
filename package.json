@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "bignumber.js": "^9.0.2",
-    "gl-matrix": "^3.4.3"
+    "gl-matrix": "^3.4.3",
+    "prettier": "^3.0.0"
   }
 }
