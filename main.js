@@ -214,7 +214,7 @@ function make_reference_orbit(){
 		var tx = x * x - y * y + cx;
 		y = 2. * x * y + cy;
 		x = tx;
-		if (x * x + y * y > 4.0) {
+		if (x * x + y * y > 400) {
 			break;
 		}
 	}
