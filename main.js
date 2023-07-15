@@ -1,5 +1,7 @@
 import "./style.css";
-import BigNumber from "bignumber.js";
+
+import {init} from "gmp-wasm";
+
 import {
   getCursorPos,
   getTouchPos,
@@ -8,8 +10,21 @@ import {
   createMatrices,
   loadTexture,
 } from "./glutils.js";
+
+init().then(({getContext, calculate, binding}) => { 
+	console.log(binding);
+
+function mpfr_zero() {
+var zero = binding.mpfr_t();
+binding.mpfr_init_set_d(zero, 0, 0);
+binding.mpfr_set_prec(zero, 200);
+binding.mpfr_set_d(zero, 0, 0);
+return zero;
+}
+var zero = mpfr_zero();
+
 let mandelbrot_state = {
-  center: [0, 0],
+  center: [mpfr_zero(), mpfr_zero()],
   radius: 2,
   iterations: 1000,
   cmapscale: 20.1,
@@ -20,20 +35,27 @@ let mandelbrot_state = {
     }
   },
   set: function (x, y, r) {
-    this.center = [x, y];
+	  binding.mpfr_set_d(this.center[0], x, 0);
+	  binding.mpfr_set_d(this.center[1], y, 0);
     this.radius = r;
     this.modified();
   },
   update: function (dx, dy) {
-    this.center = [this.center[0] + this.radius * dx, this.center[1] - this.radius * dy];
+	    binding.mpfr_add_d(
+		    this.center[0], this.center[0], this.radius * dx, 0);
+	    binding.mpfr_add_d(
+		    this.center[1] ,this.center[1], -this.radius * dy, 0);
     this.radius = this.radius / 2;
+    console.log(binding.mpfr_get_d(this.center[0], 0));
+    console.log(binding.mpfr_get_d(this.center[1], 0));
+	  console.log(binding.mpfr_get_prec(this.center[0]));
     this.modified();
   },
 };
 main();
 function main() {
   document.querySelector("#reset").addEventListener("click", (event) => {
-    document.querySelector("#iterations").value = "10000";
+    document.querySelector("#iterations").value = "1000";
     document.querySelector("#cmapscale").value = "20.1";
     mandelbrot_state.iterations = 1000;
     mandelbrot_state.cmapscale = 20.1;
@@ -168,21 +190,31 @@ function initBuffers(gl) {
 function make_reference_orbit() {
   var cx = mandelbrot_state.center[0];
   var cy = mandelbrot_state.center[1];
-  var x = 0;
-  var y = 0;
+  var x = mpfr_zero();
+  var y = mpfr_zero();
   var j = 0;
   var orbit = new Float32Array(20000);
   for (var i = 0; i < 20000; i++) {
     orbit[i] = -1;
   }
+  var tx = mpfr_zero();
+  var txx = mpfr_zero();
+  var txy = mpfr_zero();
+  var tyy = mpfr_zero();
   for (var i = 0; i < mandelbrot_state.iterations; i++) {
-    orbit[2 * i] = x;
-    orbit[2 * i + 1] = y;
+    orbit[2 * i] = binding.mpfr_get_d(x, 0);
+    orbit[2 * i + 1] = binding.mpfr_get_d(y, 0);
     j += 1;
-    var tx = x * x - y * y + cx;
-    y = 2 * x * y + cy;
-    x = tx;
-    if (x * x + y * y > 400) {
+    binding.mpfr_mul(txx, x, x, 0);
+    binding.mpfr_mul(txy, x, y, 0);
+    binding.mpfr_mul(tyy, y, y, 0);
+    binding.mpfr_sub(x, txx,  tyy, 0);
+    binding.mpfr_add(x, x, cx, 0);
+    binding.mpfr_add(y, txy, txy, 0);
+    binding.mpfr_add(y, y, cy, 0);
+    var fx = binding.mpfr_get_d(x, 0);
+    var fy = binding.mpfr_get_d(y, 0)
+    if (fx * fx + fy * fy > 400) {
       break;
     }
   }
@@ -232,3 +264,4 @@ function drawScene(gl, programInfo, buffers) {
     gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
   }
 }
+});
