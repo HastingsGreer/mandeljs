@@ -59,19 +59,24 @@ init().then(({ getContext, calculate, binding }) => {
       mandelbrot_state.cmapscale = 20.1;
       mandelbrot_state.set(0, 0, 2);
     });
+    const maxWidth = Math.min(window.innerWidth, 700);
+    const canvasSize = Math.min(maxWidth, window.innerHeight);
+
     const canvas = document.querySelector("#canvas");
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
     canvas.addEventListener("click", (event) => {
       let x, y;
       [x, y] = getCursorPos(canvas, event);
-      x = x / 350 - 1;
-      y = y / 350 - 1;
+      x = x / (canvasSize / 2) - 1;
+      y = y / (canvasSize / 2) - 1;
       mandelbrot_state.update(x, y);
     });
     canvas.addEventListener("touchstart", (event) => {
       let x, y;
       [x, y] = getTouchPos(canvas, event);
-      x = x / 350 - 1;
-      y = y / 350 - 1;
+      x = x / (canvasSize / 2) - 1;
+      y = y / (canvasSize / 2) - 1;
       mandelbrot_state.update(x, y);
     });
     document.querySelector("#iterations").addEventListener("input", (event) => {
