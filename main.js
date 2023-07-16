@@ -114,13 +114,13 @@ init().then(({ getContext, calculate, binding }) => {
     uniform sampler2D sequence;
     float get_orbit_x(int i) {
     i = i * 2;
-    int row = i / 100;
-    return texelFetch(sequence, ivec2( i % 100, row), 0)[0];
+    int row = i / 512;
+    return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
     }
     float get_orbit_y(int i) {
     i = i * 2 + 1;
-    int row = i / 100;
-    return texelFetch(sequence, ivec2( i % 100, row), 0)[0];
+    int row = i / 512;
+    return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
     }
     void main() {
      float dcx = uState[2] * delta[0];
@@ -196,8 +196,8 @@ init().then(({ getContext, calculate, binding }) => {
     var x = mpfr_zero();
     var y = mpfr_zero();
     var j = 0;
-    var orbit = new Float32Array(20000);
-    for (var i = 0; i < 20000; i++) {
+    var orbit = new Float32Array(512 * 512);
+    for (var i = 0; i < 512 * 512; i++) {
       orbit[i] = -1;
     }
     var tx = mpfr_zero();
@@ -226,7 +226,7 @@ init().then(({ getContext, calculate, binding }) => {
   function drawScene(gl, programInfo, buffers) {
     var orbit = make_reference_orbit();
     var values = new Float32Array(orbit);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 100, 200, 0, gl.RED, gl.FLOAT, values);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 512, 0, gl.RED, gl.FLOAT, values);
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
     gl.enable(gl.DEPTH_TEST); // Enable depth testing
