@@ -15,13 +15,13 @@ import{c as S,p as P,t as R,i as A}from"./vendor.0514c734.js";const M=function()
     uniform sampler2D sequence;
     float get_orbit_x(int i) {
     i = i * 2;
-    int row = i / 100;
-    return texelFetch(sequence, ivec2( i % 100, row), 0)[0];
+    int row = i / 512;
+    return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
     }
     float get_orbit_y(int i) {
     i = i * 2 + 1;
-    int row = i / 100;
-    return texelFetch(sequence, ivec2( i % 100, row), 0)[0];
+    int row = i / 512;
+    return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
     }
     void main() {
      float dcx = uState[2] * delta[0];
@@ -58,4 +58,4 @@ import{c as S,p as P,t as R,i as A}from"./vendor.0514c734.js";const M=function()
       float c = (uState[3] - float(j)) / uState[1];
       fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
     }
-  `),_={program:l,attribLocations:{vertexPosition:o.getAttribLocation(l,"aVertexPosition")},uniformLocations:{projectionMatrix:o.getUniformLocation(l,"uProjectionMatrix"),modelViewMatrix:o.getUniformLocation(l,"uModelViewMatrix"),state:o.getUniformLocation(l,"uState")}},h=p(o),v=o.createTexture();o.bindTexture(o.TEXTURE_2D,v),o.texParameteri(o.TEXTURE_2D,o.TEXTURE_MIN_FILTER,o.NEAREST),o.texParameteri(o.TEXTURE_2D,o.TEXTURE_MAG_FILTER,o.NEAREST),o.pixelStorei(o.UNPACK_ALIGNMENT,1),t.callbacks.push(()=>{L(o,_,h)}),t.modified()}function p(e){const c=e.createBuffer();e.bindBuffer(e.ARRAY_BUFFER,c);const s=[1,1,-1,1,1,-1,-1,-1];return e.bufferData(e.ARRAY_BUFFER,new Float32Array(s),e.STATIC_DRAW),{position:c}}function T(){for(var e=t.center[0],c=t.center[1],s=i(),o=i(),y=new Float32Array(2e4),d=0;d<2e4;d++)y[d]=-1;i();for(var l=i(),_=i(),h=i(),d=0;d<t.iterations;d++){y[2*d]=r.mpfr_get_d(s,0),y[2*d+1]=r.mpfr_get_d(o,0),r.mpfr_mul(l,s,s,0),r.mpfr_mul(_,s,o,0),r.mpfr_mul(h,o,o,0),r.mpfr_sub(s,l,h,0),r.mpfr_add(s,s,e,0),r.mpfr_add(o,_,_,0),r.mpfr_add(o,o,c,0);var v=r.mpfr_get_d(s,0),u=r.mpfr_get_d(o,0);if(v*v+u*u>400)break}return y}function L(e,c,s){var o=T(),y=new Float32Array(o);e.texImage2D(e.TEXTURE_2D,0,e.R32F,100,200,0,e.RED,e.FLOAT,y),e.clearColor(0,0,0,1),e.clearDepth(1),e.enable(e.DEPTH_TEST),e.depthFunc(e.LEQUAL),e.clear(e.COLOR_BUFFER_BIT|e.DEPTH_BUFFER_BIT);let d,l;[d,l]=b(e);{const _=2,h=e.FLOAT,v=!1,u=0,m=0;e.bindBuffer(e.ARRAY_BUFFER,s.position),e.vertexAttribPointer(c.attribLocations.vertexPosition,_,h,v,u,m),e.enableVertexAttribArray(c.attribLocations.vertexPosition)}e.useProgram(c.program),e.uniformMatrix4fv(c.uniformLocations.projectionMatrix,!1,d),e.uniformMatrix4fv(c.uniformLocations.modelViewMatrix,!1,l),e.uniform4f(c.uniformLocations.state,t.center[0],t.cmapscale,t.radius,t.iterations);{const _=0,h=4;e.drawArrays(e.TRIANGLE_STRIP,_,h)}}});
+  `),_={program:l,attribLocations:{vertexPosition:o.getAttribLocation(l,"aVertexPosition")},uniformLocations:{projectionMatrix:o.getUniformLocation(l,"uProjectionMatrix"),modelViewMatrix:o.getUniformLocation(l,"uModelViewMatrix"),state:o.getUniformLocation(l,"uState")}},h=p(o),v=o.createTexture();o.bindTexture(o.TEXTURE_2D,v),o.texParameteri(o.TEXTURE_2D,o.TEXTURE_MIN_FILTER,o.NEAREST),o.texParameteri(o.TEXTURE_2D,o.TEXTURE_MAG_FILTER,o.NEAREST),o.pixelStorei(o.UNPACK_ALIGNMENT,1),t.callbacks.push(()=>{L(o,_,h)}),t.modified()}function p(e){const c=e.createBuffer();e.bindBuffer(e.ARRAY_BUFFER,c);const s=[1,1,-1,1,1,-1,-1,-1];return e.bufferData(e.ARRAY_BUFFER,new Float32Array(s),e.STATIC_DRAW),{position:c}}function T(){for(var e=t.center[0],c=t.center[1],s=i(),o=i(),y=new Float32Array(512*512),d=0;d<512*512;d++)y[d]=-1;i();for(var l=i(),_=i(),h=i(),d=0;d<t.iterations;d++){y[2*d]=r.mpfr_get_d(s,0),y[2*d+1]=r.mpfr_get_d(o,0),r.mpfr_mul(l,s,s,0),r.mpfr_mul(_,s,o,0),r.mpfr_mul(h,o,o,0),r.mpfr_sub(s,l,h,0),r.mpfr_add(s,s,e,0),r.mpfr_add(o,_,_,0),r.mpfr_add(o,o,c,0);var v=r.mpfr_get_d(s,0),u=r.mpfr_get_d(o,0);if(v*v+u*u>400)break}return y}function L(e,c,s){var o=T(),y=new Float32Array(o);e.texImage2D(e.TEXTURE_2D,0,e.R32F,512,512,0,e.RED,e.FLOAT,y),e.clearColor(0,0,0,1),e.clearDepth(1),e.enable(e.DEPTH_TEST),e.depthFunc(e.LEQUAL),e.clear(e.COLOR_BUFFER_BIT|e.DEPTH_BUFFER_BIT);let d,l;[d,l]=b(e);{const _=2,h=e.FLOAT,v=!1,u=0,m=0;e.bindBuffer(e.ARRAY_BUFFER,s.position),e.vertexAttribPointer(c.attribLocations.vertexPosition,_,h,v,u,m),e.enableVertexAttribArray(c.attribLocations.vertexPosition)}e.useProgram(c.program),e.uniformMatrix4fv(c.uniformLocations.projectionMatrix,!1,d),e.uniformMatrix4fv(c.uniformLocations.modelViewMatrix,!1,l),e.uniform4f(c.uniformLocations.state,t.center[0],t.cmapscale,t.radius,t.iterations);{const _=0,h=4;e.drawArrays(e.TRIANGLE_STRIP,_,h)}}});
