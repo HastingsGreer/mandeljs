@@ -11,5 +11,6 @@
 html,
 body {
   margin-left: 0px;
-  padding-left: 0px;
+overflow-wrap: break-word;
+padding-left: 0px;
 }
