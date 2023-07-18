@@ -2,30 +2,22 @@ import "./style.css";
 
 import { init } from "gmp-wasm";
 
-import {
-  getCursorPos,
-  getTouchPos,
-  initShaderProgram,
-  loadShader,
-  createMatrices,
-  loadTexture,
-} from "./glutils.js";
+import { getCursorPos, getTouchPos, initShaderProgram, createMatrices } from "./glutils.js";
 
-init().then(({ getContext, calculate, binding }) => {
+init().then(({ binding }) => {
   console.log(binding);
 
   function mpfr_zero() {
     var zero = binding.mpfr_t();
     binding.mpfr_init_set_d(zero, 0, 0);
-    binding.mpfr_set_prec(zero, 200);
+    binding.mpfr_set_prec(zero, 800);
     binding.mpfr_set_d(zero, 0, 0);
     return zero;
   }
-  var zero = mpfr_zero();
 
   let mandelbrot_state = {
     center: [mpfr_zero(), mpfr_zero()],
-    radius: 2,
+    radius: mpfr_zero(),
     iterations: 1000,
     cmapscale: 20.1,
     callbacks: [],
@@ -37,22 +29,27 @@ init().then(({ getContext, calculate, binding }) => {
     set: function (x, y, r) {
       binding.mpfr_set_d(this.center[0], x, 0);
       binding.mpfr_set_d(this.center[1], y, 0);
-      this.radius = r;
+      binding.mpfr_set_d(this.radius, r, 0);
       this.modified();
     },
     update: function (dx, dy) {
-      binding.mpfr_add_d(this.center[0], this.center[0], this.radius * dx, 0);
-      binding.mpfr_add_d(this.center[1], this.center[1], -this.radius * dy, 0);
-      this.radius = this.radius / 2;
-      console.log(binding.mpfr_get_d(this.center[0], 0));
-      console.log(binding.mpfr_get_d(this.center[1], 0));
-      console.log(binding.mpfr_get_prec(this.center[0]));
+      var mx = mpfr_zero();
+      binding.mpfr_mul_d(mx, this.radius, dx, 0);
+      var my = mpfr_zero();
+      binding.mpfr_mul_d(my, this.radius, -dy, 0);
+
+      binding.mpfr_mul_d(this.radius, this.radius, 0.5, 0);
+
+      binding.mpfr_add(this.center[0], this.center[0], mx, 0);
+      binding.mpfr_add(this.center[1], this.center[1], my, 0);
+
       this.modified();
     },
   };
+  binding.mpfr_set_d(mandelbrot_state.radius, 2, 0);
   main();
   function main() {
-    document.querySelector("#reset").addEventListener("click", (event) => {
+    document.querySelector("#reset").addEventListener("click", () => {
       document.querySelector("#iterations").value = "1000";
       document.querySelector("#cmapscale").value = "20.1";
       mandelbrot_state.iterations = 1000;
@@ -89,7 +86,10 @@ init().then(({ getContext, calculate, binding }) => {
     });
 
     mandelbrot_state.callbacks.push(() => {
-      document.querySelector("#clickpos").innerText = mandelbrot_state.center;
+      let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
+      let y_str = binding.mpfr_to_string(mandelbrot_state.center[1], 10, 0, false);
+
+      document.querySelector("#clickpos").innerText = x_str + " + " + y_str + "i";
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
@@ -123,8 +123,12 @@ init().then(({ getContext, calculate, binding }) => {
     return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
     }
     void main() {
-     float dcx = uState[2] * delta[0];
-     float dcy = uState[2] * delta[1];
+
+     int q = int(uState[2]) - 1;
+     int cq = q;
+     float S = pow(2., float(q));
+     float dcx = delta[0];
+     float dcy = delta[1];
      float x;
      float y;
      float dx = 0.;
@@ -136,19 +140,32 @@ init().then(({ getContext, calculate, binding }) => {
      for (int i = 0; float(i) < uState[3]; i++){
      	j += 1;
 	k += 1;
-	float tx = 2. * x * dx - 2. * y * dy + dx * dx - dy * dy + dcx;
-	dy = 2. * x * dy + 2. * y * dx + 2. * dx * dy + dcy;
+	float tx = 2. * x * dx - 2. * y * dy + S * dx * dx - S * dy * dy + dcx;
+	dy = 2. * x * dy + 2. * y * dx + S * 2. * dx * dy + dcy;
 	dx = tx;
 	x = get_orbit_x(k);
 	y = get_orbit_y(k);
-	float fx = x + dx;
-	float fy = y + dy;
+	float fx = x + S * dx;
+	float fy = y + S * dy;
 	if (fx * fx + fy * fy > 4.){
 	break;
 	}
-	if (fx * fx + fy * fy < dx * dx + dy * dy || (x == -1. && y == -1.)) {
+  if ( dx * dx + dy * dy > 4.0) {
+    dx = dx / 8.;
+    dy = dy / 8.;
+    q = q + 3;
+      S = pow(2., float(q));
+      dcx = delta[0] * pow(2., float(-q + cq));
+      dcy = delta[1] * pow(2., float(-q + cq));
+      }
+
+	if (fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
 	dx  = fx;
 	dy = fy;
+    q = 0;
+      S = pow(2., float(q));
+      dcx = delta[0] * pow(2., float(-q + cq));
+      dcy = delta[1] * pow(2., float(-q + cq));
 	k = 0;
 	x = get_orbit_x(0);
 	y = get_orbit_y(0);
@@ -195,19 +212,16 @@ init().then(({ getContext, calculate, binding }) => {
     var cy = mandelbrot_state.center[1];
     var x = mpfr_zero();
     var y = mpfr_zero();
-    var j = 0;
     var orbit = new Float32Array(512 * 512);
     for (var i = 0; i < 512 * 512; i++) {
       orbit[i] = -1;
     }
-    var tx = mpfr_zero();
     var txx = mpfr_zero();
     var txy = mpfr_zero();
     var tyy = mpfr_zero();
     for (var i = 0; i < mandelbrot_state.iterations; i++) {
       orbit[2 * i] = binding.mpfr_get_d(x, 0);
       orbit[2 * i + 1] = binding.mpfr_get_d(y, 0);
-      j += 1;
       binding.mpfr_mul(txx, x, x, 0);
       binding.mpfr_mul(txy, x, y, 0);
       binding.mpfr_mul(tyy, y, y, 0);
@@ -254,11 +268,12 @@ init().then(({ getContext, calculate, binding }) => {
     gl.useProgram(programInfo.program);
     gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+    console.log(binding.mpfr_get_exp(mandelbrot_state.radius));
     gl.uniform4f(
       programInfo.uniformLocations.state,
       mandelbrot_state.center[0],
       mandelbrot_state.cmapscale,
-      mandelbrot_state.radius,
+      binding.mpfr_get_exp(mandelbrot_state.radius),
       mandelbrot_state.iterations,
     );
     {

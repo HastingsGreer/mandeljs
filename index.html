@@ -9,16 +9,18 @@
   <body>
     <div id="app">
       <canvas id="canvas" width="700" height="700"></canvas>
+      <div>
+        <button id="reset">Reset</button>
+        <label>Iterations</label>
+        <select id="iterations">
+          <option value="1000">1000</option>
+          <option value="10000">10000</option>
+          <option value="30000">30000</option>
+          <option value="100000">100000</option>
+        </select>
+        <label>Color Map Scale</label><input id="cmapscale" type="number" value="20.1" />
+      </div>
       <div id="clickpos"></div>
-      <button id="reset">Reset</button>
-      <label>Iterations</label>
-<select id="iterations">
-  <option value="1000">1000</option>
-  <option value="10000">10000</option>
-  <option value="30000">30000</option>
-  <option value="100000">100000</option>
-</select>
-      <label>Color Map Scale</label><input id="cmapscale" type="number" value="20.1" />
     </div>
     <script type="module" src="/main.js"></script>
   </body>
