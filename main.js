@@ -88,6 +88,10 @@ init().then(({ binding }) => {
     mandelbrot_state.callbacks.push(() => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
       let y_str = binding.mpfr_to_string(mandelbrot_state.center[1], 10, 0, false);
+      let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
+      fetch(
+        "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
+      );
 
       document.querySelector("#clickpos").innerText = x_str + " + " + y_str + "i";
     });
@@ -97,83 +101,91 @@ init().then(({ binding }) => {
       return;
     }
     const vsSource = `#version 300 es
-    in vec4 aVertexPosition;
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
-	out highp vec2 delta;
-    void main() {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-	  delta = vec2(aVertexPosition[0], aVertexPosition[1]);
-    }
+in vec4 aVertexPosition;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+out highp vec2 delta;
+void main() {
+  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+  delta = vec2(aVertexPosition[0], aVertexPosition[1]);
+}
   `;
     const fsSource = `#version 300 es
-    precision highp float;
-    in highp vec2 delta;
-    out vec4 fragColor;
-    uniform vec4 uState;
-    uniform sampler2D sequence;
-    float get_orbit_x(int i) {
-    i = i * 2;
-    int row = i / 512;
-    return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
-    }
-    float get_orbit_y(int i) {
-    i = i * 2 + 1;
-    int row = i / 512;
-    return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
-    }
-    void main() {
+precision highp float;
+in highp vec2 delta;
+out vec4 fragColor;
+uniform vec4 uState;
+uniform sampler2D sequence;
+float get_orbit_x(int i) {
+  i = i * 2;
+  int row = i / 512;
+  return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+}
+float get_orbit_y(int i) {
+  i = i * 2 + 1;
+  int row = i / 512;
+  return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+}
+void main() {
 
-     int q = int(uState[2]) - 1;
-     int cq = q;
-     float S = pow(2., float(q));
-     float dcx = delta[0];
-     float dcy = delta[1];
-     float x;
-     float y;
-     float dx = 0.;
-     float dy = 0.;
-     int j = 0;
-     int k = 0;
-     x = get_orbit_x(0);
-     y = get_orbit_y(0);
-     for (int i = 0; float(i) < uState[3]; i++){
-     	j += 1;
-	k += 1;
-	float tx = 2. * x * dx - 2. * y * dy + S * dx * dx - S * dy * dy + dcx;
-	dy = 2. * x * dy + 2. * y * dx + S * 2. * dx * dy + dcy;
-	dx = tx;
-	x = get_orbit_x(k);
-	y = get_orbit_y(k);
-	float fx = x + S * dx;
-	float fy = y + S * dy;
-	if (fx * fx + fy * fy > 4.){
-	break;
-	}
-  if ( dx * dx + dy * dy > 4.0) {
-    dx = dx / 8.;
-    dy = dy / 8.;
-    q = q + 3;
+  int q = int(uState[2]) - 1;
+  int cq = q;
+  float S = pow(2., float(q));
+  float dcx = delta[0];
+  float dcy = delta[1];
+  float x;
+  float y;
+  float dx = 0.;
+  float dy = 0.;
+  int j = 0;
+  int k = 0;
+  x = get_orbit_x(0);
+  y = get_orbit_y(0);
+  for (int i = 0; float(i) < uState[3]; i++){
+    j += 1;
+    k += 1;
+    float tx = 2. * x * dx - 2. * y * dy + S * dx * dx - S * dy * dy + dcx;
+    dy = 2. * x * dy + 2. * y * dx + S * 2. * dx * dy + dcy;
+    dx = tx;
+    x = get_orbit_x(k);
+    y = get_orbit_y(k);
+    float fx = x + S * dx;
+    float fy = y + S * dy;
+    if (fx * fx + fy * fy > 4.){
+      break;
+    }
+    if ( dx * dx + dy * dy > 4.0) {
+      dx = dx / 2.;
+      dy = dy / 2.;
+      q = q + 1;
       S = pow(2., float(q));
       dcx = delta[0] * pow(2., float(-q + cq));
       dcy = delta[1] * pow(2., float(-q + cq));
-      }
-
-	if (fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
-	dx  = fx;
-	dy = fy;
-    q = 0;
+    }
+    if ( dx * dx + dy * dy < .25) {
+      dx = dx * 2.;
+      dy = dy * 2.;
+      q = q - 1;
       S = pow(2., float(q));
       dcx = delta[0] * pow(2., float(-q + cq));
       dcy = delta[1] * pow(2., float(-q + cq));
-	k = 0;
-	x = get_orbit_x(0);
-	y = get_orbit_y(0);
-	}
-	}
-      float c = (uState[3] - float(j)) / uState[1];
-      fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
     }
+
+    if (fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
+      dx  = fx;
+      dy = fy;
+      q = 0;
+      S = pow(2., float(q));
+      dcx = delta[0] * pow(2., float(-q + cq));
+      dcy = delta[1] * pow(2., float(-q + cq));
+      k = 0;
+      x = get_orbit_x(0);
+      y = get_orbit_y(0);
+    }
+  }
+  float c = (uState[3] - float(j)) / uState[1];
+  fragColor = vec4(vec3(cos(c), cos(1.1214 * c) , cos(.8 * c)) / -2. + .5, 1.);
+}
   `;
     const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
     const programInfo = {
@@ -240,6 +252,11 @@ init().then(({ binding }) => {
   function drawScene(gl, programInfo, buffers) {
     var orbit = make_reference_orbit();
     var values = new Float32Array(orbit);
+    var minval = 2;
+    for (var i = 2; i < orbit.length; i++) {
+      minval = Math.min(minval, Math.abs(orbit[i]));
+    }
+    console.log("smallest orbit bit", minval);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 512, 0, gl.RED, gl.FLOAT, values);
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
