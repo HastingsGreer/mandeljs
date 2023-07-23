@@ -262,7 +262,7 @@ void main() {
     var Dx = 0;
     var Dy = 0;
     var poly = [0, 0, 0, 0, 0, 0];
-    var not_failed=true;
+    var not_failed = true;
     for (var i = 0; i < mandelbrot_state.iterations; i++) {
       orbit[2 * i] = binding.mpfr_get_d(x, 0);
       orbit[2 * i + 1] = binding.mpfr_get_d(y, 0);
@@ -275,7 +275,6 @@ void main() {
       binding.mpfr_add(x, x, cx, 0);
       binding.mpfr_add(y, txy, txy, 0);
       binding.mpfr_add(y, y, cy, 0);
-
 
       var prev_poly = [Bx, By, Cx, Cy, Dx, Dy];
       [Bx, By, Cx, Cy, Dx, Dy] = [
@@ -294,19 +293,18 @@ void main() {
         100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
       ) {
         if (not_failed) {
-          
           poly = prev_poly;
           polylim = i;
-
-        } }else {
-          not_failed=false;
         }
+      } else {
+        not_failed = false;
+      }
 
       if (fx * fx + fy * fy > 400) {
         break;
       }
     }
-    console.log("plim",polylim);
+    console.log("plim", polylim);
     return [orbit, poly, polylim];
   }
   function drawScene(gl, programInfo, buffers) {
@@ -354,21 +352,9 @@ void main() {
       binding.mpfr_get_exp(mandelbrot_state.radius),
       mandelbrot_state.iterations,
     );
-    console.log(poly)
-    gl.uniform4f(
-      programInfo.uniformLocations.poly1,
-      poly[0],
-      poly[1],
-      poly[2],
-      poly[3],
-    )
-    gl.uniform4f(
-      programInfo.uniformLocations.poly2,
-      poly[4],
-      poly[5],
-      polylim,
-      0
-    )
+    console.log(poly);
+    gl.uniform4f(programInfo.uniformLocations.poly1, poly[0], poly[1], poly[2], poly[3]);
+    gl.uniform4f(programInfo.uniformLocations.poly2, poly[4], poly[5], polylim, 0);
     {
       const offset = 0;
       const vertexCount = 4;
