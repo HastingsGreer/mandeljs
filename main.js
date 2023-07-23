@@ -46,7 +46,9 @@ init().then(({ binding }) => {
       this.modified();
     },
   };
-  binding.mpfr_set_d(mandelbrot_state.radius, 2, 0);
+  binding.mpfr_set_d(mandelbrot_state.center[0], -1.1874999999999999, 0);
+  binding.mpfr_set_d(mandelbrot_state.center[1], -0.30300739247311819085, 0);
+  binding.mpfr_set_d(mandelbrot_state.radius, Math.pow(2, -7), 0);
   main();
   function main() {
     document.querySelector("#reset").addEventListener("click", () => {
@@ -88,10 +90,10 @@ init().then(({ binding }) => {
     mandelbrot_state.callbacks.push(() => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
       let y_str = binding.mpfr_to_string(mandelbrot_state.center[1], 10, 0, false);
-      let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
-      fetch(
-        "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
-      );
+      //let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
+      //fetch(
+      //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
+      //);
 
       document.querySelector("#clickpos").innerText = x_str + " + " + y_str + "i";
     });
@@ -115,6 +117,8 @@ precision highp float;
 in highp vec2 delta;
 out vec4 fragColor;
 uniform vec4 uState;
+uniform vec4 poly1;
+uniform vec4 poly2;
 uniform sampler2D sequence;
 float get_orbit_x(int i) {
   i = i * 2;
@@ -135,13 +139,28 @@ void main() {
   float dcy = delta[1];
   float x;
   float y;
-  float dx = 0.;
-  float dy = 0.;
-  int j = 0;
-  int k = 0;
-  x = get_orbit_x(0);
-  y = get_orbit_y(0);
-  for (int i = 0; float(i) < uState[3]; i++){
+  // dx + dyi = (p0 + p1 i) * (dcx, dcy) + (p2 + p3i) * (dcx + dcy * i) * (dcx + dcy * i)
+  float sqrx =S *  (dcx * dcx - dcy * dcy);
+  float sqry =S *  (2. * dcx * dcy);
+
+  float cux = S * (dcx * sqrx - dcy * sqry);
+  float cuy = S * (dcx * sqry + dcy * sqrx);
+  float dx = poly1[0]  * dcx - poly1[1] *  dcy + poly1[2] * sqrx - poly1[3] * sqry + poly2[0] * cux - poly2[1] * cuy;
+  float dy = poly1[0] *  dcy + poly1[1] *  dcx + poly1[2] * sqry + poly1[3] * sqrx + poly2[0] * cuy + poly2[1] * cux;
+
+
+  //dx = 0.;
+  //dy = 0.;
+      
+  int k = int(poly2[2]);
+  //if (dx * dx + dy * dy > 1.){
+  //fragColor = vec4(1, 0, 1, 1);
+  //return;
+  //}
+  int j = k;
+  x = get_orbit_x(k);
+  y = get_orbit_y(k);
+  for (int i = k; float(i) < uState[3]; i++){
     j += 1;
     k += 1;
     float tx = 2. * x * dx - 2. * y * dy + S * dx * dx - S * dy * dy + dcx;
@@ -169,7 +188,7 @@ void main() {
       S = pow(2., float(q));
       dcx = delta[0] * pow(2., float(-q + cq));
       dcy = delta[1] * pow(2., float(-q + cq));
-    }
+  }
 
     if (fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
       dx  = fx;
@@ -197,6 +216,8 @@ void main() {
         projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
         modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
         state: gl.getUniformLocation(shaderProgram, "uState"),
+        poly1: gl.getUniformLocation(shaderProgram, "poly1"),
+        poly2: gl.getUniformLocation(shaderProgram, "poly2"),
       },
     };
     const buffers = initBuffers(gl);
@@ -231,9 +252,22 @@ void main() {
     var txx = mpfr_zero();
     var txy = mpfr_zero();
     var tyy = mpfr_zero();
+
+    var polylim = 0;
+
+    var Bx = 0;
+    var By = 0;
+    var Cx = 0;
+    var Cy = 0;
+    var Dx = 0;
+    var Dy = 0;
+    var poly = [0, 0, 0, 0, 0, 0];
+    var not_failed=true;
     for (var i = 0; i < mandelbrot_state.iterations; i++) {
       orbit[2 * i] = binding.mpfr_get_d(x, 0);
       orbit[2 * i + 1] = binding.mpfr_get_d(y, 0);
+      var fx = binding.mpfr_get_d(x, 0);
+      var fy = binding.mpfr_get_d(y, 0);
       binding.mpfr_mul(txx, x, x, 0);
       binding.mpfr_mul(txy, x, y, 0);
       binding.mpfr_mul(tyy, y, y, 0);
@@ -241,16 +275,42 @@ void main() {
       binding.mpfr_add(x, x, cx, 0);
       binding.mpfr_add(y, txy, txy, 0);
       binding.mpfr_add(y, y, cy, 0);
-      var fx = binding.mpfr_get_d(x, 0);
-      var fy = binding.mpfr_get_d(y, 0);
+
+
+      var prev_poly = [Bx, By, Cx, Cy, Dx, Dy];
+      [Bx, By, Cx, Cy, Dx, Dy] = [
+        2 * (fx * Bx - fy * By) + 1,
+        2 * (fx * By + fy * Bx),
+        2 * (fx * Cx - fy * Cy) + Bx * Bx - By * By,
+        2 * (fx * Cy + fy * Cx) + 2 * Bx * By,
+        2 * (fx * Dx - fy * Dy + Cx * Bx - Cy * By),
+        2 * (fx * Dy + fy * Dx + Cx * By + Cy * Bx),
+      ];
+      fx = binding.mpfr_get_d(x, 0);
+      fy = binding.mpfr_get_d(y, 0);
+
+      if (
+        Math.sqrt(Cx * Cx + Cy * Cy) >=
+        100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
+      ) {
+        if (not_failed) {
+          
+          poly = prev_poly;
+          polylim = i;
+
+        } }else {
+          not_failed=false;
+        }
+
       if (fx * fx + fy * fy > 400) {
         break;
       }
     }
-    return orbit;
+    console.log("plim",polylim);
+    return [orbit, poly, polylim];
   }
   function drawScene(gl, programInfo, buffers) {
-    var orbit = make_reference_orbit();
+    var [orbit, poly, polylim] = make_reference_orbit();
     var values = new Float32Array(orbit);
     var minval = 2;
     for (var i = 2; i < orbit.length; i++) {
@@ -286,6 +346,7 @@ void main() {
     gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
     console.log(binding.mpfr_get_exp(mandelbrot_state.radius));
+    var r = binding.mpfr_get_d(mandelbrot_state.radius, 0);
     gl.uniform4f(
       programInfo.uniformLocations.state,
       mandelbrot_state.center[0],
@@ -293,6 +354,21 @@ void main() {
       binding.mpfr_get_exp(mandelbrot_state.radius),
       mandelbrot_state.iterations,
     );
+    console.log(poly)
+    gl.uniform4f(
+      programInfo.uniformLocations.poly1,
+      poly[0],
+      poly[1],
+      poly[2],
+      poly[3],
+    )
+    gl.uniform4f(
+      programInfo.uniformLocations.poly2,
+      poly[4],
+      poly[5],
+      polylim,
+      0
+    )
     {
       const offset = 0;
       const vertexCount = 4;
