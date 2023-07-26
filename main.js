@@ -46,9 +46,17 @@ init().then(({ binding }) => {
       this.modified();
     },
   };
-  binding.mpfr_set_d(mandelbrot_state.center[0], -1.1874999999999999, 0);
-  binding.mpfr_set_d(mandelbrot_state.center[1], -0.30300739247311819085, 0);
-  binding.mpfr_set_d(mandelbrot_state.radius, Math.pow(2, -7), 0);
+  function get_cookie(key) {
+  const cookieValue = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(key + "="))
+    ?.split("=")[1];
+    return cookieValue;
+  }
+  console.log(document.cookie);
+  binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie("x"), 10, 0);
+  binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie("y"), 10, 0);
+  binding.mpfr_set_string(mandelbrot_state.radius, get_cookie("radius"), 10, 0);
   main();
   function main() {
     document.querySelector("#reset").addEventListener("click", () => {
@@ -57,6 +65,10 @@ init().then(({ binding }) => {
       mandelbrot_state.iterations = 1000;
       mandelbrot_state.cmapscale = 20.1;
       mandelbrot_state.set(0, 0, 2);
+    });
+    document.querySelector("#out").addEventListener("click", () => {
+      binding.mpfr_mul_d(mandelbrot_state.radius,mandelbrot_state.radius, 2, 0);
+      mandelbrot_state.modified();
     });
     const maxWidth = Math.min(window.innerWidth, 700);
     const canvasSize = Math.min(maxWidth, window.innerHeight);
@@ -90,7 +102,11 @@ init().then(({ binding }) => {
     mandelbrot_state.callbacks.push(() => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
       let y_str = binding.mpfr_to_string(mandelbrot_state.center[1], 10, 0, false);
-      //let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
+      let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
+
+      document.cookie = "x=" + x_str + ";max-age=31536000";
+      document.cookie = "y=" + y_str + ";max-age=31536000";
+      document.cookie = "radius=" + radius_str + ";max-age=31536000";
       //fetch(
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
@@ -140,20 +156,26 @@ void main() {
   float x;
   float y;
   // dx + dyi = (p0 + p1 i) * (dcx, dcy) + (p2 + p3i) * (dcx + dcy * i) * (dcx + dcy * i)
-  float sqrx =S *  (dcx * dcx - dcy * dcy);
-  float sqry =S *  (2. * dcx * dcy);
+  float sqrx =  (dcx * dcx - dcy * dcy);
+  float sqry =  (2. * dcx * dcy);
 
-  float cux = S * (dcx * sqrx - dcy * sqry);
-  float cuy = S * (dcx * sqry + dcy * sqrx);
-  float dx = poly1[0]  * dcx - poly1[1] *  dcy + poly1[2] * sqrx - poly1[3] * sqry + poly2[0] * cux - poly2[1] * cuy;
-  float dy = poly1[0] *  dcy + poly1[1] *  dcx + poly1[2] * sqry + poly1[3] * sqrx + poly2[0] * cuy + poly2[1] * cux;
+  float cux =  (dcx * sqrx - dcy * sqry);
+  float cuy =  (dcx * sqry + dcy * sqrx);
+  float dx = poly1[0]  * dcx - poly1[1] *  dcy + poly1[2] * sqrx - poly1[3] * sqry ;// + poly2[0] * cux - poly2[1] * cuy;
+  float dy = poly1[0] *  dcy + poly1[1] *  dcx + poly1[2] * sqry + poly1[3] * sqrx ;//+ poly2[0] * cuy + poly2[1] * cux;
 
 
   //dx = 0.;
   //dy = 0.;
       
   int k = int(poly2[2]);
-  //if (dx * dx + dy * dy > 1.){
+
+  if (true) {
+      dx = 0.;
+      dy = 0.;
+      k = 0;
+  }
+  //if (dx * dx + dy * dy < 100000000000000000000.){
   //fragColor = vec4(1, 0, 1, 1);
   //return;
   //}
@@ -290,7 +312,7 @@ void main() {
 
       if (
         Math.sqrt(Cx * Cx + Cy * Cy) >=
-        100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
+        1000 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
       ) {
         if (not_failed) {
           poly = prev_poly;
@@ -353,8 +375,8 @@ void main() {
       mandelbrot_state.iterations,
     );
     console.log(poly);
-    gl.uniform4f(programInfo.uniformLocations.poly1, poly[0], poly[1], poly[2], poly[3]);
-    gl.uniform4f(programInfo.uniformLocations.poly2, poly[4], poly[5], polylim, 0);
+    gl.uniform4f(programInfo.uniformLocations.poly1, poly[0], poly[1], r * poly[2], r * poly[3]);
+    gl.uniform4f(programInfo.uniformLocations.poly2, r * r * poly[4], r * r * poly[5], polylim, 0);
     {
       const offset = 0;
       const vertexCount = 4;
