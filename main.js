@@ -54,7 +54,7 @@ init().then(({ binding }) => {
     return cookieValue;
   }
   console.log(document.cookie);
-  if (document.cookie.length > 30){
+  if (document.cookie.length > 30) {
     binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie("x"), 10, 0);
     binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie("y"), 10, 0);
     binding.mpfr_set_string(mandelbrot_state.radius, get_cookie("radius"), 10, 0);
@@ -328,18 +328,18 @@ void main() {
 
       var scale_exponent = Math.max(x_exponent, y_exponent);
 
-      if (scale_exponent < -10000){
-	      scale_exponent = 0;
-	     }
+      if (scale_exponent < -10000) {
+        scale_exponent = 0;
+      }
       //console.log("scale exponent", scale_exponent);
       //if (x_exponent < -126 || x_exponent > 127 || y_exponent < -126 || y_exponent > 127) {
       //  orbit[3 * i] = binding.mpfr_get_d(x, 0);
       //  orbit[3 * i + 1] = binding.mpfr_get_d(y, 0);
       //  orbit[3 * i + 2] = 0;
       //} else {
-        orbit[3 * i] = binding.mpfr_get_d(x, 0) / Math.pow(2, scale_exponent);
-        orbit[3 * i + 1] = binding.mpfr_get_d(y, 0) / Math.pow(2, scale_exponent);
-        orbit[3 * i + 2] = scale_exponent;
+      orbit[3 * i] = binding.mpfr_get_d(x, 0) / Math.pow(2, scale_exponent);
+      orbit[3 * i + 1] = binding.mpfr_get_d(y, 0) / Math.pow(2, scale_exponent);
+      orbit[3 * i + 2] = scale_exponent;
       //}
 
       var fx = binding.mpfr_get_d(x, 0);
