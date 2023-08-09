@@ -18,7 +18,7 @@ init().then(({ binding }) => {
   let mandelbrot_state = {
     center: [mpfr_zero(), mpfr_zero()],
     radius: mpfr_zero(),
-    iterations: 30000,
+    iterations: 1000,
     cmapscale: 20,
     callbacks: [],
     modified: function () {
