@@ -18,7 +18,7 @@ init().then(({ binding }) => {
   let mandelbrot_state = {
     center: [mpfr_zero(), mpfr_zero()],
     radius: mpfr_zero(),
-    iterations: 1000,
+    iterations: 10000,
     cmapscale: 20.1,
     callbacks: [],
     modified: function () {
@@ -47,10 +47,10 @@ init().then(({ binding }) => {
     },
   };
   function get_cookie(key) {
-  const cookieValue = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(key + "="))
-    ?.split("=")[1];
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(key + "="))
+      ?.split("=")[1];
     return cookieValue;
   }
   console.log(document.cookie);
@@ -67,7 +67,7 @@ init().then(({ binding }) => {
       mandelbrot_state.set(0, 0, 2);
     });
     document.querySelector("#out").addEventListener("click", () => {
-      binding.mpfr_mul_d(mandelbrot_state.radius,mandelbrot_state.radius, 2, 0);
+      binding.mpfr_mul_d(mandelbrot_state.radius, mandelbrot_state.radius, 2, 0);
       mandelbrot_state.modified();
     });
     const maxWidth = Math.min(window.innerWidth, 700);
@@ -111,7 +111,7 @@ init().then(({ binding }) => {
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
 
-      document.querySelector("#clickpos").innerText = x_str + " + " + y_str + "i";
+      document.querySelector("#clickpos").innerText = x_str + " + " + y_str + "i, r=" + radius_str;
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
@@ -137,14 +137,29 @@ uniform vec4 poly1;
 uniform vec4 poly2;
 uniform sampler2D sequence;
 float get_orbit_x(int i) {
-  i = i * 2;
+  i = i * 3;
   int row = i / 512;
   return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
 }
 float get_orbit_y(int i) {
-  i = i * 2 + 1;
+  i = i * 3 + 1;
   int row = i / 512;
   return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+}
+float get_orbit_scale(int i) {
+  i = i * 3 + 2;
+  int row = i / 512;
+  return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+}
+
+vec2 floatexp(float z) {
+  return vec2(0, 0);
+}
+
+int exponent(float z) {
+  uint ex = (floatBitsToUint(z)>>23)&255U;
+  int exi = int(ex);
+  return exi;
 }
 void main() {
 
@@ -163,10 +178,6 @@ void main() {
   float cuy =  (dcx * sqry + dcy * sqrx);
   float dx = poly1[0]  * dcx - poly1[1] *  dcy + poly1[2] * sqrx - poly1[3] * sqry ;// + poly2[0] * cux - poly2[1] * cuy;
   float dy = poly1[0] *  dcy + poly1[1] *  dcx + poly1[2] * sqry + poly1[3] * sqrx ;//+ poly2[0] * cuy + poly2[1] * cux;
-
-
-  //dx = 0.;
-  //dy = 0.;
       
   int k = int(poly2[2]);
 
@@ -182,20 +193,35 @@ void main() {
   int j = k;
   x = get_orbit_x(k);
   y = get_orbit_y(k);
+	x = x * pow(2., get_orbit_scale(k));
+	y = y * pow(2., get_orbit_scale(k));
   for (int i = k; float(i) < uState[3]; i++){
     j += 1;
     k += 1;
-    float tx = 2. * x * dx - 2. * y * dy + S * dx * dx - S * dy * dy + dcx;
-    dy = 2. * x * dy + 2. * y * dx + S * 2. * dx * dy + dcy;
+   float os = get_orbit_scale(k - 1);
+   dcx = delta[0] * pow(2., float(-q + cq - int(os)));
+   dcy = delta[1] * pow(2., float(-q + cq - int(os)));
+    float unS = pow(2., float(q) -get_orbit_scale(k - 1));
+
+    float tx = 2. * x * dx - 2. * y * dy + unS  * dx * dx - unS * dy * dy + dcx;
+    dy = 2. * x * dy + 2. * y * dx + unS * 2. * dx * dy +  dcy;
     dx = tx;
+
+  //if (dy == 0. && k != 1){
+  //fragColor = vec4(float(k) / 1000., 0, 1, 1);
+  //return;
+  //}
+    q = q + int(os);
+    S = pow(2., float(q));
+
     x = get_orbit_x(k);
     y = get_orbit_y(k);
-    float fx = x + S * dx;
-    float fy = y + S * dy;
+    float fx = x * pow(2., get_orbit_scale(k)) + S * dx;
+    float fy = y * pow(2., get_orbit_scale(k))+ S * dy;
     if (fx * fx + fy * fy > 4.){
       break;
     }
-    if ( dx * dx + dy * dy > 4.0) {
+    if ( true && dx * dx + dy * dy > 4.) {
       dx = dx / 2.;
       dy = dy / 2.;
       q = q + 1;
@@ -203,7 +229,7 @@ void main() {
       dcx = delta[0] * pow(2., float(-q + cq));
       dcy = delta[1] * pow(2., float(-q + cq));
     }
-    if ( dx * dx + dy * dy < .25) {
+    if ( false && dx * dx + dy * dy < .25) {
       dx = dx * 2.;
       dy = dy * 2.;
       q = q - 1;
@@ -212,7 +238,7 @@ void main() {
       dcy = delta[1] * pow(2., float(-q + cq));
   }
 
-    if (fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
+    if ( true && fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
       dx  = fx;
       dy = fy;
       q = 0;
@@ -285,9 +311,31 @@ void main() {
     var Dy = 0;
     var poly = [0, 0, 0, 0, 0, 0];
     var not_failed = true;
+
+    //var scaled_x = mpfr_zero();
+    //var scaled_y = mpfr_zero();
     for (var i = 0; i < mandelbrot_state.iterations; i++) {
-      orbit[2 * i] = binding.mpfr_get_d(x, 0);
-      orbit[2 * i + 1] = binding.mpfr_get_d(y, 0);
+      //check if x and y are both representable as 32 bit floats
+
+      var x_exponent = binding.mpfr_get_exp(x);
+      var y_exponent = binding.mpfr_get_exp(y);
+
+      var scale_exponent = Math.max(x_exponent, y_exponent);
+
+      if (scale_exponent < -10000){
+	      scale_exponent = 0;
+	     }
+      //console.log("scale exponent", scale_exponent);
+      //if (x_exponent < -126 || x_exponent > 127 || y_exponent < -126 || y_exponent > 127) {
+      //  orbit[3 * i] = binding.mpfr_get_d(x, 0);
+      //  orbit[3 * i + 1] = binding.mpfr_get_d(y, 0);
+      //  orbit[3 * i + 2] = 0;
+      //} else {
+        orbit[3 * i] = binding.mpfr_get_d(x, 0) / Math.pow(2, scale_exponent);
+        orbit[3 * i + 1] = binding.mpfr_get_d(y, 0) / Math.pow(2, scale_exponent);
+        orbit[3 * i + 2] = scale_exponent;
+      //}
+
       var fx = binding.mpfr_get_d(x, 0);
       var fy = binding.mpfr_get_d(y, 0);
       binding.mpfr_mul(txx, x, x, 0);
