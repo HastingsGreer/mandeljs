@@ -10,7 +10,7 @@ init().then(({ binding }) => {
   function mpfr_zero() {
     var zero = binding.mpfr_t();
     binding.mpfr_init_set_d(zero, 0, 0);
-    binding.mpfr_set_prec(zero, 800);
+    binding.mpfr_set_prec(zero, 1200);
     binding.mpfr_set_d(zero, 0, 0);
     return zero;
   }
@@ -18,7 +18,7 @@ init().then(({ binding }) => {
   let mandelbrot_state = {
     center: [mpfr_zero(), mpfr_zero()],
     radius: mpfr_zero(),
-    iterations: 10000,
+    iterations: 1000,
     cmapscale: 20.1,
     callbacks: [],
     modified: function () {
@@ -199,8 +199,8 @@ void main() {
   int j = k;
   x = get_orbit_x(k);
   y = get_orbit_y(k);
-	x = x * pow(2., get_orbit_scale(k));
-	y = y * pow(2., get_orbit_scale(k));
+//	x = x * pow(2., get_orbit_scale(k));
+//	y = y * pow(2., get_orbit_scale(k));
   for (int i = k; float(i) < uState[3]; i++){
     j += 1;
     k += 1;
