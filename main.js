@@ -54,9 +54,15 @@ init().then(({ binding }) => {
     return cookieValue;
   }
   console.log(document.cookie);
-  binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie("x"), 10, 0);
-  binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie("y"), 10, 0);
-  binding.mpfr_set_string(mandelbrot_state.radius, get_cookie("radius"), 10, 0);
+  if (document.cookie.length > 30){
+    binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie("x"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie("y"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.radius, get_cookie("radius"), 10, 0);
+  } else {
+    binding.mpfr_set_string(mandelbrot_state.center[0], "0", 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.center[1], "0", 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.radius, "2", 10, 0);
+  }
   main();
   function main() {
     document.querySelector("#reset").addEventListener("click", () => {
