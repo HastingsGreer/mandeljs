@@ -18,8 +18,8 @@ init().then(({ binding }) => {
   let mandelbrot_state = {
     center: [mpfr_zero(), mpfr_zero()],
     radius: mpfr_zero(),
-    iterations: 1000,
-    cmapscale: 20.1,
+    iterations: 30000,
+    cmapscale: 20,
     callbacks: [],
     modified: function () {
       for (const cb of this.callbacks) {
@@ -157,20 +157,10 @@ float get_orbit_scale(int i) {
   int row = i / 512;
   return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
 }
-
-vec2 floatexp(float z) {
-  return vec2(0, 0);
-}
-
-int exponent(float z) {
-  uint ex = (floatBitsToUint(z)>>23)&255U;
-  int exi = int(ex);
-  return exi;
-}
 void main() {
-
   int q = int(uState[2]) - 1;
   int cq = q;
+  q = q + int(poly2[3]);
   float S = pow(2., float(q));
   float dcx = delta[0];
   float dcy = delta[1];
@@ -187,36 +177,27 @@ void main() {
       
   int k = int(poly2[2]);
 
-  if (true) {
+  if (false) {
+      q = cq;
       dx = 0.;
       dy = 0.;
       k = 0;
   }
-  //if (dx * dx + dy * dy < 100000000000000000000.){
-  //fragColor = vec4(1, 0, 1, 1);
-  //return;
-  //}
   int j = k;
   x = get_orbit_x(k);
   y = get_orbit_y(k);
-//	x = x * pow(2., get_orbit_scale(k));
-//	y = y * pow(2., get_orbit_scale(k));
   for (int i = k; float(i) < uState[3]; i++){
     j += 1;
     k += 1;
-   float os = get_orbit_scale(k - 1);
-   dcx = delta[0] * pow(2., float(-q + cq - int(os)));
-   dcy = delta[1] * pow(2., float(-q + cq - int(os)));
+    float os = get_orbit_scale(k - 1);
+    dcx = delta[0] * pow(2., float(-q + cq - int(os)));
+    dcy = delta[1] * pow(2., float(-q + cq - int(os)));
     float unS = pow(2., float(q) -get_orbit_scale(k - 1));
 
     float tx = 2. * x * dx - 2. * y * dy + unS  * dx * dx - unS * dy * dy + dcx;
     dy = 2. * x * dy + 2. * y * dx + unS * 2. * dx * dy +  dcy;
     dx = tx;
 
-  //if (dy == 0. && k != 1){
-  //fragColor = vec4(float(k) / 1000., 0, 1, 1);
-  //return;
-  //}
     q = q + int(os);
     S = pow(2., float(q));
 
@@ -242,7 +223,7 @@ void main() {
       S = pow(2., float(q));
       dcx = delta[0] * pow(2., float(-q + cq));
       dcy = delta[1] * pow(2., float(-q + cq));
-  }
+    }
 
     if ( true && fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
       dx  = fx;
@@ -366,7 +347,7 @@ void main() {
 
       if (
         Math.sqrt(Cx * Cx + Cy * Cy) >=
-        1000 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
+        100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
       ) {
         if (not_failed) {
           poly = prev_poly;
@@ -429,8 +410,34 @@ void main() {
       mandelbrot_state.iterations,
     );
     console.log(poly);
-    gl.uniform4f(programInfo.uniformLocations.poly1, poly[0], poly[1], r * poly[2], r * poly[3]);
-    gl.uniform4f(programInfo.uniformLocations.poly2, r * r * poly[4], r * r * poly[5], polylim, 0);
+    var poly_scale_exp = Math.floor(Math.log2(Math.sqrt(poly[0] * poly[0] + poly[1] * poly[1])));
+    var poly_scale = 1 / Math.pow(2, poly_scale_exp);
+
+    gl.uniform4f(
+      programInfo.uniformLocations.poly1,
+      poly_scale * poly[0],
+      poly_scale * poly[1],
+      poly_scale * r * poly[2],
+      poly_scale * r * poly[3],
+    );
+    gl.uniform4f(
+      programInfo.uniformLocations.poly2,
+      poly_scale * r * r * poly[4],
+      poly_scale * r * r * poly[5],
+      polylim,
+      poly_scale_exp,
+    );
+    console.log(
+      "poly_scaled",
+      r * poly[0],
+      r * poly[1],
+      r * r * poly[2],
+      r * r * poly[3],
+      r * r * r * poly[4],
+      r * r * r * poly[5],
+      polylim,
+      0,
+    );
     {
       const offset = 0;
       const vertexCount = 4;
