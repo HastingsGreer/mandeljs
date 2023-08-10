@@ -46,8 +46,8 @@ init().then(({ binding }) => {
       this.modified();
     },
   };
-  function get_cookie(key) {
-    const cookieValue = document.cookie
+  function get_cookie(cookie, key) {
+    const cookieValue = cookie
       .split("; ")
       .find((row) => row.startsWith(key + "="))
       ?.split("=")[1];
@@ -55,9 +55,9 @@ init().then(({ binding }) => {
   }
   console.log(document.cookie);
   if (document.cookie.length > 30) {
-    binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie("x"), 10, 0);
-    binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie("y"), 10, 0);
-    binding.mpfr_set_string(mandelbrot_state.radius, get_cookie("radius"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(document.cookie, "x"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie(document.cookie, "y"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.radius, get_cookie(document.cookie, "radius"), 10, 0);
   } else {
     binding.mpfr_set_string(mandelbrot_state.center[0], "0", 10, 0);
     binding.mpfr_set_string(mandelbrot_state.center[1], "0", 10, 0);
@@ -104,11 +104,21 @@ init().then(({ binding }) => {
       mandelbrot_state.cmapscale = parseFloat(event.target.value);
       mandelbrot_state.modified();
     });
+    document.querySelector("#clickpos").addEventListener("blur", () => {
+      var text = document.querySelector("#clickpos").value;
+      console.log("asfdsafsda", text);
+    binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(text, "re"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie(text, "im"), 10, 0);
+    binding.mpfr_set_string(mandelbrot_state.radius, get_cookie(text, "r"), 10, 0);
+      mandelbrot_state.modified();
+      console.log("blur");
+    });
 
     mandelbrot_state.callbacks.push(() => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
       let y_str = binding.mpfr_to_string(mandelbrot_state.center[1], 10, 0, false);
       let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
+  
 
       document.cookie = "x=" + x_str + ";max-age=31536000";
       document.cookie = "y=" + y_str + ";max-age=31536000";
@@ -116,8 +126,12 @@ init().then(({ binding }) => {
       //fetch(
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
+      function clip(str) {
+        var l = 5 + radius_str.split("0").length;
+        return str.slice(0, l);
+      }
 
-      document.querySelector("#clickpos").innerText = x_str + " + " + y_str + "i, r=" + radius_str;
+      document.querySelector("#clickpos").value = "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str);
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
@@ -186,6 +200,7 @@ void main() {
   int j = k;
   x = get_orbit_x(k);
   y = get_orbit_y(k);
+  
   for (int i = k; float(i) < uState[3]; i++){
     j += 1;
     k += 1;
@@ -225,7 +240,7 @@ void main() {
       dcy = delta[1] * pow(2., float(-q + cq));
     }
 
-    if ( true && fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
+    if (true  && fx * fx + fy * fy < S * S * dx * dx + S * S * dy * dy || (x == -1. && y == -1.)) {
       dx  = fx;
       dy = fy;
       q = 0;
@@ -261,7 +276,7 @@ void main() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    mandelbrot_state.callbacks.push(() => {
+    mandelbrot_state.callbacks.unshift(() => {
       drawScene(gl, programInfo, buffers);
     });
     mandelbrot_state.modified();
@@ -346,8 +361,8 @@ void main() {
       fy = binding.mpfr_get_d(y, 0);
 
       if (
-        Math.sqrt(Cx * Cx + Cy * Cy) >=
-        100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.sqrt(Dx * Dx + Dy * Dy)
+        Math.max(Math.abs(Cx), Math.abs(Cy)) >=
+        100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.max(Math.abs(Dx), Math.abs(Dy))
       ) {
         if (not_failed) {
           poly = prev_poly;
@@ -361,6 +376,7 @@ void main() {
         break;
       }
     }
+    console.log("orbit_len", i);
     console.log("plim", polylim);
     return [orbit, poly, polylim];
   }
