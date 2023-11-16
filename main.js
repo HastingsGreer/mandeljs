@@ -5,6 +5,13 @@ import { init } from "gmp-wasm";
 import { getCursorPos, getTouchPos, initShaderProgram, createMatrices } from "./glutils.js";
 
 init().then(({ binding }) => {
+
+  fetch('https://apj.hgreer.com/mandeljs', {
+    method: 'GET', // or 'POST' if needed
+    cache: 'no-store'
+})
+// No further handling of the response or errors
+
   console.log(binding);
 
   function mpfr_zero() {
