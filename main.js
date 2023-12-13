@@ -5,12 +5,12 @@ import { init } from "gmp-wasm";
 import { getCursorPos, getTouchPos, initShaderProgram, createMatrices } from "./glutils.js";
 
 init().then(({ binding }) => {
-
-  fetch('https://apj.hgreer.com/mandeljs', {
-    method: 'GET', // or 'POST' if needed
-    cache: 'no-store'
-})
-// No further handling of the response or errors
+  fetch("https://apj.hgreer.com/mandeljs", {
+    method: "GET", // or 'POST' if needed
+    cache: "no-store",
+    mode: "no-cors",
+  });
+  // No further handling of the response or errors
 
   console.log(binding);
 
@@ -54,10 +54,10 @@ init().then(({ binding }) => {
     },
   };
   function get_cookie(cookie, key) {
-    const cookieValue = cookie
-      .split("; ")
-      .find((row) => row.startsWith(key + "="))
-      ?.split("=")[1];
+    var cookieValue = cookie.replace(/\s+/g, " ").split("; ");
+
+    cookieValue = cookieValue.find((row) => row.startsWith(key + "="))?.split("=")[1];
+
     return cookieValue;
   }
   console.log(document.cookie);
@@ -114,10 +114,15 @@ init().then(({ binding }) => {
     document.querySelector("#clickpos").addEventListener("blur", () => {
       var text = document.querySelector("#clickpos").value;
       console.log("asfdsafsda", text);
-    binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(text, "re"), 10, 0);
-    binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie(text, "im"), 10, 0);
-    binding.mpfr_set_string(mandelbrot_state.radius, get_cookie(text, "r"), 10, 0);
+      binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(text, "re"), 10, 0);
+      binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie(text, "im"), 10, 0);
+      binding.mpfr_set_string(mandelbrot_state.radius, get_cookie(text, "r"), 10, 0);
+      mandelbrot_state.iterations = 10000;
+      console.log("r", get_cookie(text, "r"));
+      console.log(mandelbrot_state);
       mandelbrot_state.modified();
+      console.log(mandelbrot_state);
+
       console.log("blur");
     });
 
@@ -125,7 +130,6 @@ init().then(({ binding }) => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
       let y_str = binding.mpfr_to_string(mandelbrot_state.center[1], 10, 0, false);
       let radius_str = binding.mpfr_to_string(mandelbrot_state.radius, 10, 0, false);
-  
 
       document.cookie = "x=" + x_str + ";max-age=31536000";
       document.cookie = "y=" + y_str + ";max-age=31536000";
@@ -134,11 +138,14 @@ init().then(({ binding }) => {
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
       function clip(str) {
-        var l = 5 + radius_str.split("0").length;
+        console.log(radius_str);
+
+        var l = 50 + radius_str.replace(/0+\d$/, "").split("0").length;
         return str.slice(0, l);
       }
 
-      document.querySelector("#clickpos").value = "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str);
+      document.querySelector("#clickpos").value =
+        "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str);
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
