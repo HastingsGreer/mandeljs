@@ -166,7 +166,7 @@ init().then(({ binding }) => {
       document.querySelector("#clickpos").value =
         "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str) + "; iterations=" + mandelbrot_state.iterations;
 
-      window.history.replaceState(null, document.title,  "/?;" + document.getElementById("clickpos").value.replace(/ /g, ""));
+      window.history.replaceState(null, document.title,  "/mandeljs/?;" + document.getElementById("clickpos").value.replace(/ /g, ""));
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
