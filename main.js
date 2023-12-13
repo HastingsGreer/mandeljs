@@ -21,6 +21,14 @@ init().then(({ binding }) => {
     binding.mpfr_set_d(zero, 0, 0);
     return zero;
   }
+  function get_exp(val) {
+    var log = mpfr_zero();
+
+    binding.mpfr_log2(log, val, 0);
+
+    var logfloat = binding.mpfr_get_d(log, 0);
+    return logfloat;
+  }
 
   let mandelbrot_state = {
     center: [mpfr_zero(), mpfr_zero()],
@@ -117,6 +125,14 @@ init().then(({ binding }) => {
       binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(text, "re"), 10, 0);
       binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie(text, "im"), 10, 0);
       binding.mpfr_set_string(mandelbrot_state.radius, get_cookie(text, "r"), 10, 0);
+
+      var log = mpfr_zero();
+
+      binding.mpfr_log2(log, mandelbrot_state.radius, 0);
+      var exp = binding.mpfr_get_exp(mandelbrot_state.radius, 0);
+
+      var logfloat = binding.mpfr_get_d(log, 0);
+      console.log("radius", logfloat, exp);
       mandelbrot_state.iterations = 10000;
       console.log("r", get_cookie(text, "r"));
       console.log(mandelbrot_state);
@@ -138,6 +154,7 @@ init().then(({ binding }) => {
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
       function clip(str) {
+        return str;
         console.log(radius_str);
 
         var l = 50 + radius_str.replace(/0+\d$/, "").split("0").length;
@@ -375,14 +392,26 @@ void main() {
       fy = binding.mpfr_get_d(y, 0);
 
       if (
-        Math.max(Math.abs(Cx), Math.abs(Cy)) >=
-        100 * binding.mpfr_get_d(mandelbrot_state.radius, 0) * Math.max(Math.abs(Dx), Math.abs(Dy))
+        i == 0 ||
+        Math.max(Math.abs(Cx), Math.abs(Cy)) >
+          1000 *
+            binding.mpfr_get_d(mandelbrot_state.radius, 0) *
+            Math.max(Math.abs(Dx), Math.abs(Dy))
       ) {
         if (not_failed) {
           poly = prev_poly;
           polylim = i;
         }
       } else {
+        if (not_failed) {
+          console.log(
+            "failure cause",
+            Math.max(Math.abs(Cx), Math.abs(Cy)),
+            1 *
+              binding.mpfr_get_d(mandelbrot_state.radius, 0) *
+              Math.max(Math.abs(Dx), Math.abs(Dy)),
+          );
+        }
         not_failed = false;
       }
 
@@ -436,7 +465,7 @@ void main() {
       programInfo.uniformLocations.state,
       mandelbrot_state.center[0],
       mandelbrot_state.cmapscale,
-      binding.mpfr_get_exp(mandelbrot_state.radius),
+      1 + get_exp(mandelbrot_state.radius),
       mandelbrot_state.iterations,
     );
     console.log(poly);
