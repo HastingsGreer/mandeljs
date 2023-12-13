@@ -1,6 +1,8 @@
 to serve mandel.js
 
-[hastingsgreer.github.io/mandeljs/](http://hastingsgreer.github.io/mandeljs/)
+[Blog Post](https://www.hgreer.com/JavascriptMandelbrot/)
+
+[Live Mandelbrot Viewer](http://hastingsgreer.github.io/mandeljs/)
 
 ```
 yarn
