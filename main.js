@@ -62,13 +62,12 @@ init().then(({ binding }) => {
     },
   };
   function get_cookie(cookie, key) {
-    var cookieValue = cookie.replace(/\s+/g, " ").split("; ");
+    var cookieValue = cookie.replace(/\s+/g, "").split(";");
 
     cookieValue = cookieValue.find((row) => row.startsWith(key + "="))?.split("=")[1];
 
     return cookieValue;
   }
-  console.log(document.cookie);
   if (document.cookie.length > 30) {
     binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(document.cookie, "x"), 10, 0);
     binding.mpfr_set_string(mandelbrot_state.center[1], get_cookie(document.cookie, "y"), 10, 0);
@@ -119,7 +118,7 @@ init().then(({ binding }) => {
       mandelbrot_state.cmapscale = parseFloat(event.target.value);
       mandelbrot_state.modified();
     });
-    document.querySelector("#clickpos").addEventListener("blur", () => {
+    function updateFromClickpos() {
       var text = document.querySelector("#clickpos").value;
       console.log("asfdsafsda", text);
       binding.mpfr_set_string(mandelbrot_state.center[0], get_cookie(text, "re"), 10, 0);
@@ -127,20 +126,24 @@ init().then(({ binding }) => {
       binding.mpfr_set_string(mandelbrot_state.radius, get_cookie(text, "r"), 10, 0);
 
       var log = mpfr_zero();
-
+      if (+get_cookie(text, "iterations")) {
+      mandelbrot_state.iterations = +get_cookie(text, "iterations");
+      }
       binding.mpfr_log2(log, mandelbrot_state.radius, 0);
       var exp = binding.mpfr_get_exp(mandelbrot_state.radius, 0);
 
       var logfloat = binding.mpfr_get_d(log, 0);
       console.log("radius", logfloat, exp);
-      mandelbrot_state.iterations = 10000;
       console.log("r", get_cookie(text, "r"));
       console.log(mandelbrot_state);
       mandelbrot_state.modified();
       console.log(mandelbrot_state);
 
       console.log("blur");
-    });
+    }
+    document.querySelector("#clickpos").addEventListener("blur", updateFromClickpos);
+    document.getElementById("clickpos").onPaste = updateFromClickpos;
+
 
     mandelbrot_state.callbacks.push(() => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
@@ -154,15 +157,16 @@ init().then(({ binding }) => {
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
       function clip(str) {
-        return str;
         console.log(radius_str);
 
-        var l = 50 + radius_str.replace(/0+\d$/, "").split("0").length;
+        var l = 10 + radius_str.replace(/0+\d$/, "").split("0").length;
         return str.slice(0, l);
       }
 
       document.querySelector("#clickpos").value =
-        "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str);
+        "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str) + "; iterations=" + mandelbrot_state.iterations;
+
+      window.history.replaceState(null, document.title,  "/?;" + document.getElementById("clickpos").value.replace(/ /g, ""));
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
@@ -310,6 +314,10 @@ void main() {
     mandelbrot_state.callbacks.unshift(() => {
       drawScene(gl, programInfo, buffers);
     });
+    if(window.location.href.includes(";")) {
+	    document.getElementById("clickpos").innerText = window.location.href;
+	    updateFromClickpos();
+    }
     mandelbrot_state.modified();
   }
   function initBuffers(gl) {
