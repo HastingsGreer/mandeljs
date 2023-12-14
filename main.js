@@ -127,7 +127,7 @@ init().then(({ binding }) => {
 
       var log = mpfr_zero();
       if (+get_cookie(text, "iterations")) {
-      mandelbrot_state.iterations = +get_cookie(text, "iterations");
+        mandelbrot_state.iterations = +get_cookie(text, "iterations");
       }
       binding.mpfr_log2(log, mandelbrot_state.radius, 0);
       var exp = binding.mpfr_get_exp(mandelbrot_state.radius, 0);
@@ -143,7 +143,6 @@ init().then(({ binding }) => {
     }
     document.querySelector("#clickpos").addEventListener("blur", updateFromClickpos);
     document.getElementById("clickpos").onPaste = updateFromClickpos;
-
 
     mandelbrot_state.callbacks.push(() => {
       let x_str = binding.mpfr_to_string(mandelbrot_state.center[0], 10, 0, false);
@@ -164,9 +163,20 @@ init().then(({ binding }) => {
       }
 
       document.querySelector("#clickpos").value =
-        "re=" + clip(x_str) + "; im=" + clip(y_str) + "; r=" + clip(radius_str) + "; iterations=" + mandelbrot_state.iterations;
+        "re=" +
+        clip(x_str) +
+        "; im=" +
+        clip(y_str) +
+        "; r=" +
+        clip(radius_str) +
+        "; iterations=" +
+        mandelbrot_state.iterations;
 
-      window.history.replaceState(null, document.title,  "/mandeljs/?;" + document.getElementById("clickpos").value.replace(/ /g, ""));
+      window.history.replaceState(
+        null,
+        document.title,
+        "/mandeljs/?;" + document.getElementById("clickpos").value.replace(/ /g, ""),
+      );
     });
     const gl = canvas.getContext("webgl2");
     if (!gl) {
@@ -193,18 +203,18 @@ uniform vec4 poly2;
 uniform sampler2D sequence;
 float get_orbit_x(int i) {
   i = i * 3;
-  int row = i / 512;
-  return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+  int row = i / 1024;
+  return texelFetch(sequence, ivec2( i % 1024, row), 0)[0];
 }
 float get_orbit_y(int i) {
   i = i * 3 + 1;
-  int row = i / 512;
-  return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+  int row = i / 1024;
+  return texelFetch(sequence, ivec2( i % 1024, row), 0)[0];
 }
 float get_orbit_scale(int i) {
   i = i * 3 + 2;
-  int row = i / 512;
-  return texelFetch(sequence, ivec2( i % 512, row), 0)[0];
+  int row = i / 1024;
+  return texelFetch(sequence, ivec2( i % 1024, row), 0)[0];
 }
 void main() {
   int q = int(uState[2]) - 1;
@@ -244,6 +254,10 @@ void main() {
     dcy = delta[1] * pow(2., float(-q + cq - int(os)));
     float unS = pow(2., float(q) -get_orbit_scale(k - 1));
 
+    if (isinf(unS)) {
+    unS = 0.;
+      }
+
     float tx = 2. * x * dx - 2. * y * dy + unS  * dx * dx - unS * dy * dy + dcx;
     dy = 2. * x * dy + 2. * y * dx + unS * 2. * dx * dy +  dcy;
     dx = tx;
@@ -258,7 +272,9 @@ void main() {
     if (fx * fx + fy * fy > 4.){
       break;
     }
-    if ( true && dx * dx + dy * dy > 4.) {
+
+
+    if ( true && dx * dx + dy * dy > 1000000.) {
       dx = dx / 2.;
       dy = dy / 2.;
       q = q + 1;
@@ -314,9 +330,9 @@ void main() {
     mandelbrot_state.callbacks.unshift(() => {
       drawScene(gl, programInfo, buffers);
     });
-    if(window.location.href.includes(";")) {
-	    document.getElementById("clickpos").innerText = window.location.href;
-	    updateFromClickpos();
+    if (window.location.href.includes(";")) {
+      document.getElementById("clickpos").innerText = window.location.href;
+      updateFromClickpos();
     }
     mandelbrot_state.modified();
   }
@@ -334,8 +350,8 @@ void main() {
     var cy = mandelbrot_state.center[1];
     var x = mpfr_zero();
     var y = mpfr_zero();
-    var orbit = new Float32Array(512 * 512);
-    for (var i = 0; i < 512 * 512; i++) {
+    var orbit = new Float32Array(1024 * 1024);
+    for (var i = 0; i < 1024 * 1024; i++) {
       orbit[i] = -1;
     }
     var txx = mpfr_zero();
@@ -353,8 +369,8 @@ void main() {
     var poly = [0, 0, 0, 0, 0, 0];
     var not_failed = true;
 
-    //var scaled_x = mpfr_zero();
-    //var scaled_y = mpfr_zero();
+    var scaled_x = mpfr_zero();
+    var scaled_y = mpfr_zero();
     for (var i = 0; i < mandelbrot_state.iterations; i++) {
       //check if x and y are both representable as 32 bit floats
 
@@ -372,9 +388,16 @@ void main() {
       //  orbit[3 * i + 1] = binding.mpfr_get_d(y, 0);
       //  orbit[3 * i + 2] = 0;
       //} else {
-      orbit[3 * i] = binding.mpfr_get_d(x, 0) / Math.pow(2, scale_exponent);
-      orbit[3 * i + 1] = binding.mpfr_get_d(y, 0) / Math.pow(2, scale_exponent);
+      var _ = 0;
+
+      orbit[3 * i] = binding.mpfr_get_d_2exp(_, x, 0) / Math.pow(2, scale_exponent - x_exponent);
+      orbit[3 * i + 1] =
+        binding.mpfr_get_d_2exp(_, y, 0) / Math.pow(2, scale_exponent - y_exponent);
       orbit[3 * i + 2] = scale_exponent;
+
+      if (orbit[3 * i + 1] == 0) {
+        console.log("yeet", i);
+      }
       //}
 
       var fx = binding.mpfr_get_d(x, 0);
@@ -429,6 +452,8 @@ void main() {
     }
     console.log("orbit_len", i);
     console.log("plim", polylim);
+    console.log(orbit.length, "orbit_structure length");
+    window.orbit = orbit;
     return [orbit, poly, polylim];
   }
   function drawScene(gl, programInfo, buffers) {
@@ -439,7 +464,7 @@ void main() {
       minval = Math.min(minval, Math.abs(orbit[i]));
     }
     console.log("smallest orbit bit", minval);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 512, 512, 0, gl.RED, gl.FLOAT, values);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 1024, 1024, 0, gl.RED, gl.FLOAT, values);
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
     gl.enable(gl.DEPTH_TEST); // Enable depth testing
