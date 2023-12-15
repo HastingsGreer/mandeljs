@@ -377,9 +377,6 @@ void main() {
 
       m = m / Math.pow(2, logm);
       e = e + logm;
-      if (isNaN(m)) {
-        window.penis();
-      }
     }
     return [m, e];
   }
