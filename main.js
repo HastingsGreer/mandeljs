@@ -53,7 +53,7 @@ init().then(({ binding }) => {
       var my = mpfr_zero();
       binding.mpfr_mul_d(my, this.radius, -dy, 0);
 
-      binding.mpfr_mul_d(this.radius, this.radius, 0.5, 0);
+      binding.mpfr_mul_d(this.radius, this.radius, 1.0 / 4.0, 0);
 
       binding.mpfr_add(this.center[0], this.center[0], mx, 0);
       binding.mpfr_add(this.center[1], this.center[1], my, 0);
@@ -156,8 +156,6 @@ init().then(({ binding }) => {
       //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
       //);
       function clip(str) {
-        console.log(radius_str);
-
         var l = 10 + radius_str.replace(/0+\d$/, "").split("0").length;
         return str.slice(0, l);
       }
@@ -345,6 +343,69 @@ void main() {
       position: positionBuffer,
     };
   }
+  function sub(a, b) {
+    var [am, ae] = a;
+    var [bm, be] = b;
+    var ret_e = Math.max(ae, be);
+    if (ret_e > ae) {
+      am = am * Math.pow(2, ae - ret_e);
+    } else {
+      bm = bm * Math.pow(2, be - ret_e);
+    }
+    return [am - bm, ret_e];
+  }
+  function add(a, b) {
+    var [am, ae] = a;
+    var [bm, be] = b;
+    var ret_e = Math.max(ae, be);
+    if (ret_e > ae) {
+      am = am * Math.pow(2, ae - ret_e);
+    } else {
+      bm = bm * Math.pow(2, be - ret_e);
+    }
+    return [am + bm, ret_e];
+  }
+  function mul(a, b) {
+    var [am, ae] = a;
+    var [bm, be] = b;
+
+    var m = am * bm,
+      e = ae + be;
+
+    if (m != 0) {
+      var logm = Math.round(Math.log2(Math.abs(m)));
+
+      m = m / Math.pow(2, logm);
+      e = e + logm;
+      if (isNaN(m)) {
+        window.penis();
+      }
+    }
+    return [m, e];
+  }
+  function maxabs(a, b) {
+    var [am, ae] = a;
+    var [bm, be] = b;
+    var ret_e = Math.max(ae, be);
+    if (ret_e > ae) {
+      am = am * Math.pow(2, ae - ret_e);
+    } else {
+      bm = bm * Math.pow(2, be - ret_e);
+    }
+    return [Math.max(Math.abs(am), Math.abs(bm)), ret_e];
+  }
+  function gt(a, b) {
+    var [am, ae] = a;
+    var [bm, be] = b;
+    var ret_e = Math.max(ae, be);
+    if (ret_e > ae) {
+      am = am * Math.pow(2, ae - ret_e);
+    } else {
+      bm = bm * Math.pow(2, be - ret_e);
+    }
+    return am > bm;
+  }
+
   function make_reference_orbit() {
     var cx = mandelbrot_state.center[0];
     var cy = mandelbrot_state.center[1];
@@ -360,12 +421,12 @@ void main() {
 
     var polylim = 0;
 
-    var Bx = 0;
-    var By = 0;
-    var Cx = 0;
-    var Cy = 0;
-    var Dx = 0;
-    var Dy = 0;
+    var Bx = [0, 0];
+    var By = [0, 0];
+    var Cx = [0, 0];
+    var Cy = [0, 0];
+    var Dx = [0, 0];
+    var Dy = [0, 0];
     var poly = [0, 0, 0, 0, 0, 0];
     var not_failed = true;
 
@@ -395,13 +456,8 @@ void main() {
         binding.mpfr_get_d_2exp(_, y, 0) / Math.pow(2, scale_exponent - y_exponent);
       orbit[3 * i + 2] = scale_exponent;
 
-      if (orbit[3 * i + 1] == 0) {
-        console.log("yeet", i);
-      }
-      //}
-
-      var fx = binding.mpfr_get_d(x, 0);
-      var fy = binding.mpfr_get_d(y, 0);
+      var fx = [orbit[3 * i], orbit[3 * i + 2]];
+      var fy = [orbit[3 * i + 1], orbit[3 * i + 2]];
       binding.mpfr_mul(txx, x, x, 0);
       binding.mpfr_mul(txy, x, y, 0);
       binding.mpfr_mul(tyy, y, y, 0);
@@ -412,22 +468,21 @@ void main() {
 
       var prev_poly = [Bx, By, Cx, Cy, Dx, Dy];
       [Bx, By, Cx, Cy, Dx, Dy] = [
-        2 * (fx * Bx - fy * By) + 1,
-        2 * (fx * By + fy * Bx),
-        2 * (fx * Cx - fy * Cy) + Bx * Bx - By * By,
-        2 * (fx * Cy + fy * Cx) + 2 * Bx * By,
-        2 * (fx * Dx - fy * Dy + Cx * Bx - Cy * By),
-        2 * (fx * Dy + fy * Dx + Cx * By + Cy * Bx),
+        add(mul([2, 0], sub(mul(fx, Bx), mul(fy, By))), [1, 0]),
+        mul([2, 0], add(mul(fx, By), mul(fy, Bx))),
+        sub(add(mul([2, 0], sub(mul(fx, Cx), mul(fy, Cy))), mul(Bx, Bx)), mul(By, By)),
+        add(mul([2, 0], add(mul(fx, Cy), mul(fy, Cx))), mul(mul([2, 0], Bx), By)),
+        mul([2, 0], add(sub(mul(fx, Dx), mul(fy, Dy)), sub(mul(Cx, Bx), mul(Cy, By)))),
+        mul([2, 0], add(add(add(mul(fx, Dy), mul(fy, Dx)), mul(Cx, By)), mul(Cy, Bx))),
       ];
-      fx = binding.mpfr_get_d(x, 0);
-      fy = binding.mpfr_get_d(y, 0);
-
+      fx = [binding.mpfr_get_d_2exp(_, x, 0), binding.mpfr_get_exp(x)];
+      fy = [binding.mpfr_get_d_2exp(_, y, 0), binding.mpfr_get_exp(y)];
       if (
         i == 0 ||
-        Math.max(Math.abs(Cx), Math.abs(Cy)) >
-          1000 *
-            binding.mpfr_get_d(mandelbrot_state.radius, 0) *
-            Math.max(Math.abs(Dx), Math.abs(Dy))
+        gt(
+          maxabs(Cx, Cy),
+          mul([1000, binding.mpfr_get_exp(mandelbrot_state.radius)], maxabs(Dx, Dy)),
+        )
       ) {
         if (not_failed) {
           poly = prev_poly;
@@ -435,26 +490,21 @@ void main() {
         }
       } else {
         if (not_failed) {
-          console.log(
-            "failure cause",
-            Math.max(Math.abs(Cx), Math.abs(Cy)),
-            1 *
-              binding.mpfr_get_d(mandelbrot_state.radius, 0) *
-              Math.max(Math.abs(Dx), Math.abs(Dy)),
-          );
         }
         not_failed = false;
       }
 
-      if (fx * fx + fy * fy > 400) {
+      if (gt(add(mul(fx, fx), mul(fy, fy)), [400, 0])) {
         break;
       }
     }
-    console.log("orbit_len", i);
     console.log("plim", polylim);
-    console.log(orbit.length, "orbit_structure length");
     window.orbit = orbit;
+    console.log("orbit_len", i);
     return [orbit, poly, polylim];
+  }
+  function floaty(d) {
+    return Math.pow(2, d[1]) * d[0];
   }
   function drawScene(gl, programInfo, buffers) {
     var [orbit, poly, polylim] = make_reference_orbit();
@@ -493,7 +543,12 @@ void main() {
     gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
     console.log(binding.mpfr_get_exp(mandelbrot_state.radius));
-    var r = binding.mpfr_get_d(mandelbrot_state.radius, 0);
+    var rexp = binding.mpfr_get_exp(mandelbrot_state.radius);
+    var _ = 0;
+    var r = binding.mpfr_get_d_2exp(_, mandelbrot_state.radius, 0);
+    r = [r, rexp];
+    console.log(r);
+
     gl.uniform4f(
       programInfo.uniformLocations.state,
       mandelbrot_state.center[0],
@@ -502,34 +557,35 @@ void main() {
       mandelbrot_state.iterations,
     );
     console.log(poly);
-    var poly_scale_exp = Math.floor(Math.log2(Math.sqrt(poly[0] * poly[0] + poly[1] * poly[1])));
-    var poly_scale = 1 / Math.pow(2, poly_scale_exp);
+
+    var poly_scale_exp = mul([1, 0], maxabs(poly[0], poly[1]));
+
+    var poly_scale = [1, -poly_scale_exp[1]];
+
+    var poly_scaled = [
+      mul(poly_scale, poly[0]),
+      mul(poly_scale, poly[1]),
+      mul(poly_scale, mul(r, poly[2])),
+      mul(poly_scale, mul(r, poly[3])),
+      mul(poly_scale, mul(r, mul(r, poly[4]))),
+      mul(poly_scale, mul(r, mul(r, poly[5]))),
+    ].map(floaty);
 
     gl.uniform4f(
       programInfo.uniformLocations.poly1,
-      poly_scale * poly[0],
-      poly_scale * poly[1],
-      poly_scale * r * poly[2],
-      poly_scale * r * poly[3],
+      poly_scaled[0],
+      poly_scaled[1],
+      poly_scaled[2],
+      poly_scaled[3],
     );
     gl.uniform4f(
       programInfo.uniformLocations.poly2,
-      poly_scale * r * r * poly[4],
-      poly_scale * r * r * poly[5],
+      poly_scaled[4],
+      poly_scaled[5],
       polylim,
-      poly_scale_exp,
+      poly_scale_exp[1],
     );
-    console.log(
-      "poly_scaled",
-      r * poly[0],
-      r * poly[1],
-      r * r * poly[2],
-      r * r * poly[3],
-      r * r * r * poly[4],
-      r * r * r * poly[5],
-      polylim,
-      0,
-    );
+    console.log("poly_scaled", poly_scaled, polylim, 0);
     {
       const offset = 0;
       const vertexCount = 4;
