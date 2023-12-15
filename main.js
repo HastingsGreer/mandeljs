@@ -53,7 +53,7 @@ init().then(({ binding }) => {
       var my = mpfr_zero();
       binding.mpfr_mul_d(my, this.radius, -dy, 0);
 
-      binding.mpfr_mul_d(this.radius, this.radius, 1.0 / 4.0, 0);
+      binding.mpfr_mul_d(this.radius, this.radius, 1.0 / 2.0, 0);
 
       binding.mpfr_add(this.center[0], this.center[0], mx, 0);
       binding.mpfr_add(this.center[1], this.center[1], my, 0);
