@@ -173,7 +173,7 @@ init().then(({ binding }) => {
       window.history.replaceState(
         null,
         document.title,
-        "/mandeljs/?;" + document.getElementById("clickpos").value.replace(/ /g, ""),
+        "/?;" + document.getElementById("clickpos").value.replace(/ /g, ""),
       );
     });
     const gl = canvas.getContext("webgl2");
