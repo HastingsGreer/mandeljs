@@ -14,3 +14,7 @@ body {
   overflow-wrap: break-word;
   padding-left: 0px;
 }
+
+canvas, button {
+  touch-action: manipulation;
+}
