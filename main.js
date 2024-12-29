@@ -152,9 +152,12 @@ init().then(({ binding }) => {
       document.cookie = "x=" + x_str + ";max-age=31536000";
       document.cookie = "y=" + y_str + ";max-age=31536000";
       document.cookie = "radius=" + radius_str + ";max-age=31536000";
-      //fetch(
-      //  "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
-      //);
+      fetch(
+       "https://apj.hgreer.com/mandel/?real=" + x_str + "&imag=" + y_str + "&radius=" + radius_str,
+       method: "GET", 
+       cache: "no-store",
+       mode: "no-cors",
+      });
       function clip(str) {
         var l = 10 + radius_str.replace(/0+\d$/, "").split("0").length;
         return str.slice(0, l);
